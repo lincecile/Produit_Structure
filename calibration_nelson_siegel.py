@@ -16,19 +16,17 @@ def nelson_siegel(
 
 # Calibration
 df=pd.read_csv('RateCurve.csv', sep=";")
-print(df)
 def convert_mat(pillar):
     if "M" in pillar:
         return int(pillar.replace("M", "")) / 12
     if "Y" in pillar:
         return int(pillar.replace("Y", ""))
     raise ValueError("Unknown format")
+df["maturity"]=df["Pillar"].map(convert_mat)
 
-df["Maturity"]=df["Pillar"].map(convert_mat)
-
-maturities=list(df["Maturity"])
+maturities=list(df["maturity"])
 rates=list(df["Rate"])
 
 from scipy.optimize import curve_fit
-popt, _ =curve_fit(nelson_siegel, maturities, rates)
+popt, _=curve_fit(nelson_siegel, maturities, rates)
 print(popt)
