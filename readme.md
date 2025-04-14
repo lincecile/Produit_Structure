@@ -14,6 +14,7 @@ pip install -r requierements.txt
 
 
 ## TODO
+- https://github.com/BaptisteZloch/Structured-Products-in-Python
 
 1 - monte carlo ok
 2 - vasicek qui sort un float pour le rate
@@ -23,6 +24,7 @@ pip install -r requierements.txt
 5 - utiliser arbre pour option vanille
 6 - future/forward
       - FX
+      - greeks sur autre que option => future etc.
 7 - monte carlo avec option barriere (imen)
 8 - class strategy option qui permet de prendre plusieurs option vanille en entrée
       - wedding cake
