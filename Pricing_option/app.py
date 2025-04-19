@@ -137,7 +137,7 @@ with tab1 :
     with col422:
         option_type_strat = st.selectbox("Choisissez une stratégie prédéfinie :", [strat.value for strat in StratOption])
         params = {"americaine": st.checkbox("Option américaine", value=True)}
-        params["quantity"] = st.number_input("Quantité:", min_value=0.1, value=1.0, step=0.1)
+        params["quantity"] = st.number_input("Quantité:",0, value=1, step=1)
     
         
         if option_type_strat in ["Call Spread", "Put Spread", "Strangle", 'Collar']:
@@ -325,7 +325,7 @@ with tab1:
 
         strategy = OptionsStrategy(st.session_state.portfolio, donnee_marche, expiry_date=maturite)
         
-        strategy.create_strategy(option_type_strat, params)
+        strategy.create_strategy(option_type_strat, params, 1 if sens_option == 'Long' else -1)  
         st.success(f"Stratégie {option_type_strat} créée avec succès !")
             
         summary_folio = st.session_state.portfolio.get_portfolio_summary()

@@ -470,47 +470,35 @@ class OptionsStrategy:
             americaine=americaine
         )
 
-    def long_call(self, strike: float, quantity: float = 1.0, americaine: bool = True) -> None:
+    def long_call(self, strike: float, quantity: float = 1.0, americaine: bool = False) -> None:
         """
         Ajoute un(des) call(s) long(s) au portefeuille.
         """
-        if quantity <= 0:
-            raise ValueError("La quantité doit être positive pour une position longue")
-        
         option = self.create_option(strike, is_call=True, americaine=americaine)
         self.portfolio.add_option(option, quantity)
         
-    def short_call(self, strike: float, quantity: float = 1.0, americaine: bool = True) -> None:
+    def short_call(self, strike: float, quantity: float = 1.0, americaine: bool = False) -> None:
         """
         Ajoute un(des) call(s) short(s) au portefeuille.
         """
-        if quantity <= 0:
-            raise ValueError("La quantité doit être positive et sera convertie en position courte")
-        
         option = self.create_option(strike, is_call=True, americaine=americaine)
         self.portfolio.add_option(option, -quantity)
     
-    def long_put(self, strike: float, quantity: float = 1.0, americaine: bool = True) -> None:
+    def long_put(self, strike: float, quantity: float = 1.0, americaine: bool = False) -> None:
         """
         Ajoute un(des) put(s) long(s) au portefeuille.
         """
-        if quantity <= 0:
-            raise ValueError("La quantité doit être positive pour une position longue")
-        
         option = self.create_option(strike, is_call=False, americaine=americaine)
         self.portfolio.add_option(option, quantity)
     
-    def short_put(self, strike: float, quantity: float = 1.0, americaine: bool = True) -> None:
+    def short_put(self, strike: float, quantity: float = 1.0, americaine: bool = False) -> None:
         """
         Ajoute un(des) put(s) short(s) au portefeuille.
         """
-        if quantity <= 0:
-            raise ValueError("La quantité doit être positive et sera convertie en position courte")
-        
         option = self.create_option(strike, is_call=False, americaine=americaine)
         self.portfolio.add_option(option, -quantity)
 
-    def call_spread(self, lower_strike: float, upper_strike: float, quantity: float = 1.0, americaine: bool = True) -> None:
+    def call_spread(self, lower_strike: float, upper_strike: float, quantity: float = 1.0, americaine: bool = False) -> None:
         """
         Crée un bull call spread: achat d'un call à strike bas, vente d'un call à strike haut.
         
@@ -526,7 +514,7 @@ class OptionsStrategy:
         self.long_call(lower_strike, quantity, americaine)
         self.short_call(upper_strike, quantity, americaine)
     
-    def put_spread(self, lower_strike: float, upper_strike: float, quantity: float = 1.0, americaine: bool = True) -> None:
+    def put_spread(self, lower_strike: float, upper_strike: float, quantity: float = 1.0, americaine: bool = False) -> None:
         """
         Crée un bear put spread: achat d'un put à strike haut, vente d'un put à strike bas.
         
@@ -542,7 +530,7 @@ class OptionsStrategy:
         self.short_put(lower_strike, quantity, americaine)
         self.long_put(upper_strike, quantity, americaine)
     
-    def strangle(self, put_strike: float, call_strike: float, quantity: float = 1.0, americaine: bool = True) -> None:
+    def strangle(self, put_strike: float, call_strike: float, quantity: float = 1.0, americaine: bool = False) -> None:
         """
         Crée un strangle: achat d'un put OTM et d'un call OTM.
         
@@ -560,7 +548,7 @@ class OptionsStrategy:
         self.long_put(put_strike, quantity, americaine)
         self.long_call(call_strike, quantity, americaine)
     
-    def straddle(self, strike: float, quantity: float = 1.0, americaine: bool = True) -> None:
+    def straddle(self, strike: float, quantity: float = 1.0, americaine: bool = False) -> None:
         """
         Crée un straddle: achat d'un put et d'un call au même strike (généralement ATM).
         
@@ -573,7 +561,7 @@ class OptionsStrategy:
         self.long_call(strike, quantity, americaine)
     
     def butterfly(self, lower_strike: float, middle_strike: float, upper_strike: float, 
-                  quantity: float = 1.0, is_call: bool = True, americaine: bool = True) -> None:
+                  quantity: float = 1.0, is_call: bool = True, americaine: bool = False) -> None:
         """
         Crée un butterfly spread: achat d'une option au strike bas, 
         vente de deux options au strike milieu, achat d'une option au strike haut.
@@ -603,7 +591,7 @@ class OptionsStrategy:
             self.long_put(upper_strike, quantity, americaine)
     
     def collar(self, put_strike: float, call_strike: float, 
-               option_quantity: float = None, americaine: bool = True) -> None:
+               option_quantity: float = None, americaine: bool = False) -> None:
         """
         Crée un collar: protection d'une position sous-jacente longue 
         en achetant un put et en vendant un call.
@@ -622,7 +610,7 @@ class OptionsStrategy:
         self.long_put(put_strike, option_quantity, americaine)
         self.short_call(call_strike, option_quantity, americaine)
 
-    def create_strategy(self, strategy_name: str, params: dict) -> None:
+    def create_strategy(self, strategy_name: str, params: dict, quantity_multiplier: float = 1.0) -> None:
         """
         Crée une stratégie d'options prédéfinie en fonction du nom de la stratégie
         et des paramètres fournis.
@@ -648,6 +636,7 @@ class OptionsStrategy:
 
         americaine = params.get("americaine", True)
         quantity = params.get("quantity", 1.0)
+        quantity = quantity * quantity_multiplier
 
         # Appeler la méthode correspondante avec les bons paramètres
         if strategy_name == "call_spread":
