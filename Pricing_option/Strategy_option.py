@@ -495,15 +495,10 @@ if __name__ == "__main__":
     # Création d'un portefeuille
     portfolio = OptionsPortfolio()
     
-    # # Butterfly
-    # portfolio.add_option('call', 90, 1, 10)    # Long call bas strike
-    # portfolio.add_option('call', 100, -2, 5)   # Short 2 calls strike moyen
-    # portfolio.add_option('call', 110, 1, 2)    # Long call haut strike
-
-    # Butterfly
-    portfolio.add_option('put', 80, -6*3, 0)    # Long call bas strike
-    portfolio.add_option('put', 70, 5*3, 0)   # Short 2 calls strike moyen
-    # portfolio.add_option('put', 100, 1, 0)    # Long call haut strike
+    # Ajout d'options pour former un butterfly
+    portfolio.add_option('call', 90, 1, 10)    # Long call bas strike
+    portfolio.add_option('call', 100, -2, 5)   # Short 2 calls strike moyen
+    portfolio.add_option('call', 110, 1, 2)    # Long call haut strike
     
     # Paramètres de marché
     S = 100  # Prix spot actuel

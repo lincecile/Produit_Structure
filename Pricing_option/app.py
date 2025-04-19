@@ -27,6 +27,8 @@ from Classes_MonteCarlo_LSM.module_graph import LSMGraph
 
 from Classes_Both.derivatives import OptionDerivatives, OptionDerivativesParameters
 
+from Strategy_option2 import OptionsPortfolio
+
 #%% Constantes
 
 today= dt.date.today()
@@ -37,11 +39,16 @@ st.set_page_config(layout="wide")
 
 
 # Titre de l'application
-st.title("LSM Monte Carlo - [ALAOUI Emma](%s), [LIN Cécile](%s)" % (
-    'https://www.linkedin.com/in/emmaalaoui/',
-    'https://www.linkedin.com/in/c%C3%A9cile-lin-196b751b5/'
-))
-
+st.title("LSM Monte Carlo")
+st.markdown("""
+<p style="font-size:20px">
+    <strong><a href="https://www.linkedin.com/in/emmaalaoui/" target="_blank">ALAOUI Emma</a>,
+    <strong><a href="https://www.linkedin.com/in/imen-khadir-b51498205/" target="_blank">KHADIR Imen</a>,
+    <strong><a href="https://www.linkedin.com/in/c%C3%A9cile-lin-196b751b5/" target="_blank">LIN Cécile</a>,
+    <strong><a href="https://www.linkedin.com/in/mat%C3%A9o-molinaro/" target="_blank">MOLINARO Matéo</a>,
+    <strong><a href="https://www.linkedin.com/in/enzomontariol/" target="_blank">MONTARIOL Enzo</a>
+</p>
+""", unsafe_allow_html=True)
 # tab_LSM, tab_trinomial_tree = st.tabs(["LSM Monte Carlo","Trinomial Tree"])
 
 
@@ -49,11 +56,14 @@ st.title("LSM Monte Carlo - [ALAOUI Emma](%s), [LIN Cécile](%s)" % (
 ###################### Onglet 1 : Inputs Utilisateur ######################
 ########################################################################### 
 
-tab1, tab2, tab3, tab4, tabcomparaison = st.tabs(["Pricing", "Plus d'options", "Graphique : Brownien et Sous-Jacent", "Greeks", "Analyse - Comparaison"])
+tab_option_strat, tab1, tab2, tab3, tab4, tabcomparaison = st.tabs(["Strat Option", "Pricing", "Plus d'options", "Graphique : Brownien et Sous-Jacent", "Greeks", "Analyse - Comparaison"])
+
 
 with tab1 :
     
     activer_pricing = st.button('Pricing')
+
+    add_option_folio = st.button('Ajouter une option à la stratégie')
     
     col11, col12, col13 = st.columns(3)
     
@@ -149,7 +159,8 @@ barriere = Barriere(niveau_barriere=niveau_barriere, type_barriere=type_barriere
     
 donnee_marche = DonneeMarche(date_pricing, spot, volatite, risk_free_rate, risk_free_rate, dividende_ex_date, dividende_montant)
 option = Option(maturite, strike, barriere=barriere, 
-                americaine=False if option_exercice == 'Européenne' else True, call=True if option_type == "Call" else False,
+                americaine=False if option_exercice == 'Européenne' else True, 
+                call=True if option_type == "Call" else False,
                 date_pricing=date_pricing)
 
 bs_check = option.americaine==False and donnee_marche.dividende_montant == 0 and option.barriere.direction_barriere == None
@@ -211,6 +222,8 @@ with tab2 :
 brownian = Brownian(time_to_maturity=(maturite-date_pricing).days / convention_base_calendaire, nb_step=nb_pas, nb_trajectoire=nb_chemin, seed=seed_choice)
 pricer = LSM_method(option)
 
+# portfolio = OptionsPortfolio(brownian,donnee_marche)
+
 with tab1:
 
     if activer_pricing : 
@@ -261,6 +274,27 @@ with tab1:
         
         st.metric('''Valeur de l'option :''', value=prix_option, delta=None)
         st.metric('Temps de pricing (secondes) :', value=time_difference, delta=None)
+
+    if add_option_folio :
+
+        if 'portfolio' not in st.session_state:
+            st.session_state.portfolio = OptionsPortfolio(brownian, donnee_marche)
+        
+        st.session_state.portfolio.add_option(option, 1)  
+        
+        summary_folio = st.session_state.portfolio.get_portfolio_summary()
+        
+        greeks_folio = st.session_state.portfolio.calculate_portfolio_greeks()
+        
+        st.dataframe(summary_folio)
+        st.dataframe(greeks_folio)
+
+    # Bouton pour vider le portefeuille
+    if st.button("Vider le portefeuille"):
+        if 'portfolio' in st.session_state:
+            st.session_state.portfolio.clear_portfolio()
+            st.success("Le portefeuille a été vidé")
+
 
 
 # ###########################################################################
