@@ -12,7 +12,7 @@ import warnings
 warnings.filterwarnings("ignore")
 sys.setrecursionlimit(1000000000)
 
-from Classes_Both.module_enums import TypeBarriere, DirectionBarriere, ConventionBaseCalendaire, MethodeCalcul, RegType
+from Classes_Both.module_enums import TypeBarriere, DirectionBarriere, ConventionBaseCalendaire, MethodeCalcul, RegType, SensOption, StratOption
 from Classes_Both.module_marche import DonneeMarche
 from Classes_Both.module_option import Option
 from Classes_TrinomialTree.module_barriere import Barriere
@@ -27,7 +27,7 @@ from Classes_MonteCarlo_LSM.module_graph import LSMGraph
 
 from Classes_Both.derivatives import OptionDerivatives, OptionDerivativesParameters
 
-from Strategy_option2 import OptionsPortfolio
+from Strategy_option2 import OptionsPortfolio, OptionsStrategy
 
 #%% Constantes
 
@@ -63,8 +63,6 @@ with tab1 :
     
     activer_pricing = st.button('Pricing')
 
-    add_option_folio = st.button('Ajouter une option à la stratégie')
-    
     col11, col12, col13 = st.columns(3)
     
     with col11 : 
@@ -128,6 +126,36 @@ with tab1 :
         
     with col43:
         option_exercice = st.selectbox("Choisissez le type de l'exercice :", ['Européenne','Américaine']) 
+    
+    st.divider()
+    col412, col422, col432 = st.columns(3)
+
+    with col412 :
+        # strike = st.number_input("Entrez le strike (en €):", format="%.2f",value=100.0, step=0.01)
+        sens_option = st.selectbox("Choisissez le sens de l'option ou de la stratégie:", [sens.value for sens in SensOption])
+    
+    with col422:
+        option_type_strat = st.selectbox("Choisissez une stratégie prédéfinie :", [strat.value for strat in StratOption])
+        params = {"americaine": st.checkbox("Option américaine", value=True)}
+        params["quantity"] = st.number_input("Quantité:", min_value=0.1, value=1.0, step=0.1)
+    
+        
+        if option_type_strat in ["Call Spread", "Put Spread", "Strangle", 'Collar']:
+            params["strike1"] = st.number_input("Entrez le strike de la première option :", 0.0, format="%.2f", value=95.0, step=0.01)
+            params["strike2"] = st.number_input("Entrez le strike de la seconde option :", 0.0, format="%.2f", value=105.0, step=0.01)
+        
+        if option_type_strat in ["Straddle", "Long Call", "Short Call", "Long Put", "Short Put"]:
+            params["strike"] = st.number_input("Entrez le strike des options :", 0.0, format="%.2f", value=100.0, step=0.01)
+        
+        if option_type_strat in ["Butterfly"]:
+            params["strike1"] = st.number_input("Entrez le strike de la première option :", 0.0, format="%.2f", value=90.0, step=0.01)
+            params["strike2"] = st.number_input("Entrez le strike de la seconde option :", 0.0, format="%.2f", value=100.0, step=0.01)
+            params["strike3"] = st.number_input("Entrez le strike de la troisième option :", 0.0, format="%.2f", value=110.0, step=0.01)
+            params["is_call"] = st.checkbox("Utiliser des calls (décocher pour des puts)", value=True)
+    
+        
+    with col432:
+        qty_strat = st.number_input("Entrez le nombre de stratégie souhaitée:", value=1, step=1)
     
     #Barrière
         
@@ -274,14 +302,32 @@ with tab1:
         
         st.metric('''Valeur de l'option :''', value=prix_option, delta=None)
         st.metric('Temps de pricing (secondes) :', value=time_difference, delta=None)
-
-    if add_option_folio :
-
+   
+    if st.button('Ajouter une option au portfeuille') :
         if 'portfolio' not in st.session_state:
             st.session_state.portfolio = OptionsPortfolio(brownian, donnee_marche)
         
-        st.session_state.portfolio.add_option(option, 1)  
+
+        st.session_state.portfolio.add_option(option, 1 if sens_option == 'Long' else -1)  
         
+        summary_folio = st.session_state.portfolio.get_portfolio_summary()
+        
+        greeks_folio = st.session_state.portfolio.calculate_portfolio_greeks()
+        
+        st.dataframe(summary_folio)
+        st.dataframe(greeks_folio)
+    
+    if st.button('Ajouter une stratégie prédéfinie au portfeuille') :
+        strategy_name = option_type_strat.replace(" ", "_").lower()
+        
+        if 'portfolio' not in st.session_state:
+            st.session_state.portfolio = OptionsPortfolio(brownian, donnee_marche)
+
+        strategy = OptionsStrategy(st.session_state.portfolio, donnee_marche, expiry_date=maturite)
+        
+        strategy.create_strategy(option_type_strat, params)
+        st.success(f"Stratégie {option_type_strat} créée avec succès !")
+            
         summary_folio = st.session_state.portfolio.get_portfolio_summary()
         
         greeks_folio = st.session_state.portfolio.calculate_portfolio_greeks()

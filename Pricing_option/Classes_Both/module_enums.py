@@ -19,6 +19,19 @@ class DirectionBarriere(Enum) :
     up = "Up"
     down = "Down"
 
+class SensOption(Enum) : 
+    short = "Short"
+    long = "Long"
+
+
+class StratOption(Enum) : 
+    callspread = "Call Spread"
+    putspread = "Put Spread"
+    strangle = "Strangle"
+    straddle = "Straddle"
+    butterfly = "Butterfly"
+    collar = "Collar"
+
 class MethodeCalcul(Enum) : 
     vector = "Vectorielle"
     scalar = "Scalaire"
