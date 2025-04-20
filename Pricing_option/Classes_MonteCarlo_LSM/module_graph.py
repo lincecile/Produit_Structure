@@ -4,10 +4,10 @@ import pandas as pd
 import time
 from matplotlib.gridspec import GridSpec
 import seaborn as sns
-from Classes_Both.module_option import Option
-from Classes_Both.module_marche import DonneeMarche
-from Classes_MonteCarlo_LSM.module_brownian import Brownian
-from Classes_MonteCarlo_LSM.module_LSM import LSM_method
+from Pricing_option.Classes_Both.module_option import Option
+from Pricing_option.Classes_Both.module_marche import DonneeMarche
+from Pricing_option.Classes_MonteCarlo_LSM.module_brownian import Brownian
+from Pricing_option.Classes_MonteCarlo_LSM.module_LSM import LSM_method
 from copy import deepcopy
 
 

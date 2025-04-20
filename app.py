@@ -8,26 +8,28 @@ import time
 import sys
 import os
 import warnings
+import plotly.graph_objects as go
 
 warnings.filterwarnings("ignore")
 sys.setrecursionlimit(1000000000)
 
-from Classes_Both.module_enums import TypeBarriere, DirectionBarriere, ConventionBaseCalendaire, MethodeCalcul, RegType, SensOption, StratOption
-from Classes_Both.module_marche import DonneeMarche
-from Classes_Both.module_option import Option
-from Classes_TrinomialTree.module_barriere import Barriere
-from Classes_TrinomialTree.module_arbre_noeud import Arbre
-from Classes_Both.module_pricing_analysis import StrikeComparison, VolComparison, RateComparison
-from Classes_Both.module_black_scholes import BlackAndScholes
-from Classes_TrinomialTree.module_grecques_empiriques import GrecquesEmpiriques
+from Pricing_option.Classes_Both.module_enums import TypeBarriere, DirectionBarriere, ConventionBaseCalendaire, MethodeCalcul, RegType, SensOption, StratOption
+from Pricing_option.Classes_Both.module_marche import DonneeMarche
+from Pricing_option.Classes_Both.module_option import Option
+from Pricing_option.Classes_TrinomialTree.module_barriere import Barriere
+from Pricing_option.Classes_TrinomialTree.module_arbre_noeud import Arbre
+from Pricing_option.Classes_Both.module_pricing_analysis import StrikeComparison, VolComparison, RateComparison
+from Pricing_option.Classes_Both.module_black_scholes import BlackAndScholes
+from Pricing_option.Classes_TrinomialTree.module_grecques_empiriques import GrecquesEmpiriques
 
-from Classes_MonteCarlo_LSM.module_brownian import Brownian
-from Classes_MonteCarlo_LSM.module_LSM import LSM_method
-from Classes_MonteCarlo_LSM.module_graph import LSMGraph
+from Pricing_option.Classes_MonteCarlo_LSM.module_brownian import Brownian
+from Pricing_option.Classes_MonteCarlo_LSM.module_LSM import LSM_method
+from Pricing_option.Classes_MonteCarlo_LSM.module_graph import LSMGraph
 
-from Classes_Both.derivatives import OptionDerivatives, OptionDerivativesParameters
+from Pricing_option.Classes_Both.derivatives import OptionDerivatives, OptionDerivativesParameters
 
-from Strategy_option2 import OptionsPortfolio, OptionsStrategy
+from Strategies_optionnelles.Portfolio_options import OptionsPortfolio
+from Strategies_optionnelles.Strategies_predefinies import OptionsStrategy
 
 #%% Constantes
 
@@ -307,18 +309,10 @@ with tab1:
         if 'portfolio' not in st.session_state:
             st.session_state.portfolio = OptionsPortfolio(brownian, donnee_marche)
         
-
         st.session_state.portfolio.add_option(option, 1 if sens_option == 'Long' else -1)  
-        
-        summary_folio = st.session_state.portfolio.get_portfolio_summary()
-        
-        greeks_folio = st.session_state.portfolio.calculate_portfolio_greeks()
-        
-        st.dataframe(summary_folio)
-        st.dataframe(greeks_folio)
     
     if st.button('Ajouter une stratégie prédéfinie au portfeuille') :
-        strategy_name = option_type_strat.replace(" ", "_").lower()
+        strategy_name = option_type_strat.lower()
         
         if 'portfolio' not in st.session_state:
             st.session_state.portfolio = OptionsPortfolio(brownian, donnee_marche)
@@ -327,12 +321,17 @@ with tab1:
         
         strategy.create_strategy(option_type_strat, params, 1 if sens_option == 'Long' else -1)  
         st.success(f"Stratégie {option_type_strat} créée avec succès !")
-            
+    
+    if st.button('Récap du portfeuille') :
+
+        if 'portfolio' not in st.session_state:
+            st.session_state.portfolio = OptionsPortfolio(brownian, donnee_marche)
+            st.error("Le portefeuille est vide")
+
         summary_folio = st.session_state.portfolio.get_portfolio_summary()
-        
-        greeks_folio = st.session_state.portfolio.calculate_portfolio_greeks()
-        
         st.dataframe(summary_folio)
+
+        greeks_folio = st.session_state.portfolio.calculate_portfolio_greeks()
         st.dataframe(greeks_folio)
 
     # Bouton pour vider le portefeuille
@@ -340,6 +339,21 @@ with tab1:
         if 'portfolio' in st.session_state:
             st.session_state.portfolio.clear_portfolio()
             st.success("Le portefeuille a été vidé")
+
+    if st.button('Tracer le payoff du portefeuille'):
+        if 'portfolio' in st.session_state and st.session_state.portfolio.options :
+            fig = st.session_state.portfolio.plot_portfolio_payoff(show_individual=True)
+            st.plotly_chart(fig, use_container_width=True)
+        else:
+            st.error("Le portefeuille est vide")
+
+    # Pour afficher le payoff d'une option spécifique
+    if st.button('Tracer le payoff de l\'option 1'):
+        if 'portfolio' in st.session_state and st.session_state.portfolio.options:
+            fig = st.session_state.portfolio.plot_option_payoff(0)  # Option à l'indice 0
+            st.plotly_chart(fig)
+        else:
+            st.error("Le portefeuille est vide")
 
 
 

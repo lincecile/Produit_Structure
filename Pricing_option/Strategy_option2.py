@@ -623,16 +623,6 @@ class OptionsStrategy:
             None
         """
         strategy_name = strategy_name.lower()
-        
-        # Vérifier si tous les paramètres nécessaires sont fournis
-        required_params = {
-            "call_spread": ["lower_strike", "upper_strike", "quantity", "americaine"],
-            "put_spread": ["lower_strike", "upper_strike", "quantity", "americaine"],
-            "strangle": ["put_strike", "call_strike", "quantity", "americaine"],
-            "straddle": ["strike", "quantity", "americaine"],
-            "butterfly": ["lower_strike", "middle_strike", "upper_strike", "quantity", "is_call", "americaine"],
-            "collar": ["stock_quantity", "put_strike", "call_strike", "option_quantity", "americaine"]
-        }
 
         americaine = params.get("americaine", True)
         quantity = params.get("quantity", 1.0)

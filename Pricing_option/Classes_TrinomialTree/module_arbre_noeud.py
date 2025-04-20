@@ -3,9 +3,9 @@ from __future__ import annotations
 
 import numpy as np
 
-from Classes_Both.module_marche import DonneeMarche
-from Classes_Both.module_option import Option
-from Classes_Both.module_enums import ConventionBaseCalendaire, TypeBarriere, DirectionBarriere
+from Pricing_option.Classes_Both.module_marche import DonneeMarche
+from Pricing_option.Classes_Both.module_option import Option
+from Pricing_option.Classes_Both.module_enums import ConventionBaseCalendaire, TypeBarriere, DirectionBarriere
 
 #%%Constantes
 

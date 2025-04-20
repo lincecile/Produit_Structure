@@ -1,3 +1,5 @@
 .venv/
 TODO.md
 __pycache__/
+
+*.pyc
