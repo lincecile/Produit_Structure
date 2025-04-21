@@ -1,5 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
+from collections import defaultdict
 from typing import List, Dict, Tuple, Union, Optional
 from Pricing_option.Classes_MonteCarlo_LSM.module_LSM import LSM_method
 from Pricing_option.Classes_Both.module_option import Option
@@ -7,7 +8,7 @@ from Pricing_option.Classes_Both.module_marche import DonneeMarche
 from Pricing_option.Classes_MonteCarlo_LSM.module_brownian import Brownian
 from Pricing_option.Classes_Both.derivatives import OptionDerivatives
 import plotly.graph_objects as go
-
+import pandas as pd
 class OptionsPortfolio:
     """
     Classe qui gère un portefeuille d'options (calls et puts) et calcule le payoff total
@@ -37,15 +38,58 @@ class OptionsPortfolio:
             'quantity': quantity,
             'premium': price,
         })
-        print(self.options)
         
         self.option_objects.append(option)
+
+        combined = defaultdict(lambda: {'quantity': 0})
+
+        for item in self.options:
+            rounded_premium = round(float(item['premium']), 2) 
+            key = (item['type'], item['strike'], rounded_premium)
+            combined[key]['quantity'] += item['quantity']
+
+        # Résultat formaté
+        result = [
+            {'type': k[0], 'strike': k[1], 'premium': k[2], 'quantity': v['quantity']}
+            for k, v in combined.items()
+        ]
+
+        self.options = result
+        print(self.options)
     
     def clear_portfolio(self):
         """Vide le portefeuille d'options."""
         self.options.clear()
         self.option_objects.clear()
     
+    def remove_option_quantity(self, option_index: int, quantity_to_remove: float) -> bool:
+        """
+        Supprime une quantité spécifique d'une option existante dans le portefeuille.
+        
+        Args:
+            option_index: Indice de l'option dans le portefeuille
+            quantity_to_remove: Quantité à supprimer (valeur positive)
+            
+        Returns:
+            bool: True si l'opération a réussi, False sinon
+        """
+        if option_index < 0 or option_index >= len(self.options):
+            print(f"Erreur: Index d'option invalide ({option_index}). Le portefeuille contient {len(self.options)} options.")
+                
+        current_quantity = self.options[option_index]['quantity']
+        
+        # Si on supprime plus que la quantité disponible
+        if (abs(quantity_to_remove) > abs(current_quantity)) or (abs(quantity_to_remove) == abs(current_quantity)):
+            del self.options[option_index]
+            del self.option_objects[option_index]
+        else:
+            # Sinon, on réduit la quantité
+            # On garde le signe de la position (long/short)
+            sign = 1 if current_quantity > 0 else -1
+            self.options[option_index]['quantity'] -= quantity_to_remove * sign
+            print(self.options)
+
+
     def price_portfolio(self) -> float:
         """Calcule le prix total du portefeuille"""
         return sum(opt['premium'] * opt['quantity'] for opt in self.options)
@@ -117,6 +161,27 @@ class OptionsPortfolio:
             'total_cost': total_cost,
             'portfolio_price': self.price_portfolio()
         }
+    
+    def get_portfolio_detail(self) -> Dict:
+        
+        if not self.options:
+            print("Aucune option dans le portefeuille.")
+            return pd.DataFrame() 
+
+        df = pd.DataFrame(self.options)
+        df.index.name = "Numéro de l'option"
+        
+        # Ajout d'une colonne pour la valeur totale de la position
+        df['valeur_position'] = (df['quantity'] * df['premium']).round(4)
+        
+        # Renommer les colonnes pour plus de clarté
+        df = df.rename(columns={
+            'type': 'Type',
+            'strike': 'Strike',
+            'quantity': 'Quantité',
+            'premium': 'Prime payée/reçue',
+        })
+        return df
 
     def plot_portfolio_payoff(self, price_range: float = 0.3, num_points: int = 1000, 
                   show_individual: bool = True, show_premium: bool = True):
@@ -130,13 +195,11 @@ class OptionsPortfolio:
         
         # Créer une plage de prix
         current_price = self.market_data.prix_spot
-        min_price = current_price * (1 - price_range)
-        max_price = current_price * (1 + price_range)
-        spot_prices = np.linspace(min_price, max_price, num_points)
+        spot_prices = np.linspace(0, current_price*2, num_points)
         
         # Calculer le payoff total
         total_payoff = np.zeros_like(spot_prices)
-        
+
         # Créer une figure Plotly
         fig = go.Figure()
         
@@ -161,7 +224,7 @@ class OptionsPortfolio:
                     opacity=0.6,
                     name=f"{option_info['type']} K={strike:.2f} (x{quantity})"
                 ))
-                
+            
             total_payoff += payoff
         
         # Tracer le payoff total
@@ -199,7 +262,7 @@ class OptionsPortfolio:
             ),
             autosize=True,
             height=600,
-            margin=dict(l=50, r=50, t=80, b=50)
+            margin=dict(l=50, r=50, t=80, b=50),
         )
         
         return fig
@@ -233,9 +296,7 @@ class OptionsPortfolio:
         
         # Créer une plage de prix autour du strike
         current_price = self.market_data.prix_spot
-        min_price = current_price * (1 - price_range)
-        max_price = current_price * (1 + price_range)
-        spot_prices = np.linspace(min_price, max_price, num_points)
+        spot_prices = np.linspace(0, current_price*2, num_points)
         
         # Calculer le payoff avec et sans prime
         payoff_without_premium = quantity * np.maximum(0, (spot_prices - strike) if is_call else (strike - spot_prices))

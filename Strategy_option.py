@@ -21,7 +21,7 @@ risk_free_rate = 0.02
 dividende_ex_date = dt.date.today()
 dividende_montant = 0
 maturite = dt.date(2024, 10, 23)
-strike = 101
+strike = 100
 option_exercice = 'Européenne' 
 option_type = "Call"
 convention_base_calendaire = 365
@@ -39,15 +39,28 @@ option = Option(maturite, strike, barriere=None,
             americaine=False if option_exercice == 'Européenne' else True, call=True if option_type == "Call" else False,
             date_pricing=date_pricing)
 
+option1 = Option(maturite, strike, barriere=None, 
+            americaine=False if option_exercice == 'Européenne' else True, call=False if option_type == "Call" else False,
+            date_pricing=date_pricing)
+
+option2 = Option(maturite, 50, barriere=None, 
+            americaine=False if option_exercice == 'Européenne' else True, call=False if option_type == "Call" else False,
+            date_pricing=date_pricing)
+
 brownian = Brownian(time_to_maturity=(maturite-date_pricing).days / convention_base_calendaire, nb_step=nb_pas, nb_trajectoire=nb_chemin, seed=seed_choice)
 
 portfolio = OptionsPortfolio(brownian,donnee_marche)
 
 # Ajout d'options pour former un butterfly
-portfolio.add_option(option, 1)    # Long call bas strike
-portfolio.add_option(option, -2)   # Short 2 calls strike moyen
+portfolio.add_option(option1, 1)    # Long call bas strike
+portfolio.add_option(option, 2)   # Short 2 calls strike moyen
+portfolio.add_option(option, 1)
+portfolio.add_option(option2, -1) 
+portfolio.add_option(option2, -1) 
 # portfolio.add_option(option, 2)    # Long call haut strike
-
+print(portfolio.get_portfolio_detail())
+portfolio.remove_option_quantity(1,1)
+print(portfolio.get_portfolio_detail())
 # Créer un gestionnaire de stratégies
 # strategy = OptionsStrategy(portfolio, donnee_marche, expiry_date=maturite)
 
@@ -58,12 +71,12 @@ portfolio.add_option(option, -2)   # Short 2 calls strike moyen
 # strategy.straddle(strike=105, quantity=1.0)
 
 # Visualiser le payoff de la stratégie complète
-fig_portfolio = portfolio.plot_portfolio_payoff(show_individual=True)
-fig_option = portfolio.plot_option_payoff(1)
+# fig_portfolio = portfolio.plot_portfolio_payoff(show_individual=True)
+# fig_option = portfolio.plot_option_payoff(1)
 
 # Afficher les figures Plotly
-fig_portfolio.show()
-fig_option.show()
+# fig_portfolio.show()
+# fig_option.show()
 # # Calcul et affichage des grecques du portefeuille
 # portfolio_greeks = portfolio.calculate_portfolio_greeks()
 # print(portfolio_greeks)

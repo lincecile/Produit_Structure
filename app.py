@@ -139,7 +139,7 @@ with tab1 :
     with col422:
         option_type_strat = st.selectbox("Choisissez une stratégie prédéfinie :", [strat.value for strat in StratOption])
         params = {"americaine": st.checkbox("Option américaine", value=True)}
-        params["quantity"] = st.number_input("Quantité:",0, value=1, step=1)
+        
     
         
         if option_type_strat in ["Call Spread", "Put Spread", "Strangle", 'Collar']:
@@ -155,10 +155,10 @@ with tab1 :
             params["strike3"] = st.number_input("Entrez le strike de la troisième option :", 0.0, format="%.2f", value=110.0, step=0.01)
             params["is_call"] = st.checkbox("Utiliser des calls (décocher pour des puts)", value=True)
     
-        
     with col432:
-        qty_strat = st.number_input("Entrez le nombre de stratégie souhaitée:", value=1, step=1)
-    
+        params["quantity"] = st.number_input("Quantité:",0, value=1, step=1)
+        indice = st.number_input("Indice de l'option à supprimer:",0, value=1, step=1)
+
     #Barrière
         
     if barriere_check:
@@ -309,7 +309,7 @@ with tab1:
         if 'portfolio' not in st.session_state:
             st.session_state.portfolio = OptionsPortfolio(brownian, donnee_marche)
         
-        st.session_state.portfolio.add_option(option, 1 if sens_option == 'Long' else -1)  
+        st.session_state.portfolio.add_option(option, 1*params["quantity"] if sens_option == 'Long' else -1*params["quantity"])  
     
     if st.button('Ajouter une stratégie prédéfinie au portfeuille') :
         strategy_name = option_type_strat.lower()
@@ -325,14 +325,32 @@ with tab1:
     if st.button('Récap du portfeuille') :
 
         if 'portfolio' not in st.session_state:
-            st.session_state.portfolio = OptionsPortfolio(brownian, donnee_marche)
             st.error("Le portefeuille est vide")
+        else:
+            summary_folio = st.session_state.portfolio.get_portfolio_summary()
+            st.dataframe(summary_folio)
 
-        summary_folio = st.session_state.portfolio.get_portfolio_summary()
-        st.dataframe(summary_folio)
+    if st.button('Grecques du portfeuille') :
 
-        greeks_folio = st.session_state.portfolio.calculate_portfolio_greeks()
-        st.dataframe(greeks_folio)
+        if 'portfolio' not in st.session_state:
+            st.error("Le portefeuille est vide")
+        else:
+            greeks_folio = st.session_state.portfolio.calculate_portfolio_greeks()
+            st.dataframe(greeks_folio)
+
+    if st.button('Détail du portfeuille') :
+
+        if 'portfolio' not in st.session_state:
+            st.error("Le portefeuille est vide")
+        else:
+            detail_folio = st.session_state.portfolio.get_portfolio_detail()
+            st.dataframe(detail_folio)
+    
+    # Bouton pour supprimer une option du portefeuille
+    if st.button("Supprimer une/des options"):
+        if 'portfolio' in st.session_state:
+            st.session_state.portfolio.remove_option_quantity(indice,params["quantity"])
+            st.success("Supprimé")
 
     # Bouton pour vider le portefeuille
     if st.button("Vider le portefeuille"):
