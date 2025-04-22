@@ -5,7 +5,7 @@ import math
 from dataclasses import dataclass
 from typing import Optional, Dict
 
-from ..maturity.maturity import Maturity
+from timing.maturity import Maturity
 
 #%% classes
 
@@ -70,3 +70,6 @@ class Rate:
                 )
                 ** maturity.maturity_years
             )
+            
+    def __add__(self, other: float) -> float:
+        return self.__rate + other if self.__rate is not None else other
