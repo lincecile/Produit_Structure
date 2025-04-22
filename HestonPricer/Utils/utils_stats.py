@@ -1,6 +1,7 @@
 # hestonpricer/utils/stats.py
 import numpy as np
 import math
+from scipy.stats import norm
 
 class Stats:
     @staticmethod
@@ -21,6 +22,7 @@ class Stats:
     @staticmethod
     def normal_cdf(x):
         """Calculate the standard normal cumulative distribution function"""
+        '''
         if x < 0:
             return 1 - Stats.normal_cdf(-x)
         
@@ -33,7 +35,8 @@ class Stats:
         b5 = 1.330274429
         k = 1 / (1 + 0.2316419 * x)
         pdf = np.exp(-x * x / 2.0) / np.sqrt(2 * np.pi)
-        return 1.0 - pdf * (b1 * k + b2 * k**2 + b3 * k**3 + b4 * k**4 + b5 * k**5)
+        return 1.0 - pdf * (b1 * k + b2 * k**2 + b3 * k**3 + b4 * k**4 + b5 * k**5)'''
+        return norm.cdf(x)
     
     @staticmethod
     def correlation(a, b):
