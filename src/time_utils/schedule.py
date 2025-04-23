@@ -22,8 +22,18 @@ class Schedule(Maturity):
         """
         Generate a list of dates between start_date and end_date with the specified frequency.
         """
-        delta = (self.end_date - self.start_date) / self.frequency
-        return [self.start_date + i * delta for i in range(self.frequency + 1)]
+
+        schedule = []
+        current_date = self.start_date
+        while current_date < self.end_date:
+            schedule.append(current_date)
+            current_date += dt.timedelta(self.frequency)
+
+        # Ensure the end_date is included in the schedule
+        if schedule[-1] != self.end_date:
+            schedule.append(self.end_date)
+
+        return schedule
     
     def get_accrual(self, payment_date: dt.date) -> float:
         """

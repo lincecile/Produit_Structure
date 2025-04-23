@@ -5,7 +5,7 @@ import datetime as dt
 from typing import Optional
 
 from products import Product
-from timing.schedule import Schedule
+from time_utils.schedule import Schedule
 from rate import Rate
 
 #%% classes
@@ -26,9 +26,12 @@ class SwapBase(Product):
                  schedule: Schedule,
                  receiving_leg : LegType,
                  paying_leg : LegType,
-                 price_history: Optional[list[float]] = None
+                 price_history: Optional[list[float]] = None,
+                 price: Optional[float] = None
                  ) -> None:
-        super().__init__(name, price_history)
+        super().__init__(name=name,
+                         price_history=price_history,
+                         price=price)  
 
         self.notional = notional
         self.schedule = schedule
@@ -58,7 +61,8 @@ class Swap(SwapBase):
                  paying_rate: Rate,
                  receiving_rate_premium: float = 0.0,
                  paying_rate_premium: float = 0.0,
-                 price_history: Optional[list[float]] = None
+                 price_history: Optional[list[float]] = None,
+                 price: Optional[float] = None
                  ) -> None:
         
         self.notional = notional
@@ -70,7 +74,8 @@ class Swap(SwapBase):
         self.total_paying_rate = paying_rate + paying_rate_premium
 
         super().__init__(name=name,
-                         price_history=price_history, 
+                         price_history=price_history,
+                         price=price, 
                          notional=notional, 
                          schedule=schedule, 
                          receiving_leg=receiving_leg, 
@@ -102,3 +107,5 @@ class Swap(SwapBase):
             price += (receiving_cf - paying_cf)
             
         return price
+    
+    #TODO : accrual interest
