@@ -2,10 +2,10 @@
 import datetime as dt
 from dataclasses import dataclass
 from typing import Optional, Tuple
-from Pricing_option.Classes_Both.module_marche import DonneeMarche
-from Pricing_option.Classes_Both.module_option import Option
-from Pricing_option.Classes_MonteCarlo_LSM.module_brownian import Brownian
-from Pricing_option.Classes_MonteCarlo_LSM.module_regression import RegressionEstimator
+from src.options.Pricing_option.Classes_Both.module_marche import DonneeMarche
+from src.options.Pricing_option.Classes_Both.module_option import Option
+from src.options.Pricing_option.Classes_MonteCarlo_LSM.module_brownian import Brownian
+from src.options.Pricing_option.Classes_MonteCarlo_LSM.module_regression import RegressionEstimator
 import numpy as np
 import pandas as pd
 
