@@ -13,23 +13,27 @@ import plotly.graph_objects as go
 warnings.filterwarnings("ignore")
 sys.setrecursionlimit(1000000000)
 
-from Pricing_option.Classes_Both.module_enums import TypeBarriere, DirectionBarriere, ConventionBaseCalendaire, MethodeCalcul, RegType, SensOption, StratOption
-from Pricing_option.Classes_Both.module_marche import DonneeMarche
-from Pricing_option.Classes_Both.module_option import Option
-from Pricing_option.Classes_TrinomialTree.module_barriere import Barriere
-from Pricing_option.Classes_TrinomialTree.module_arbre_noeud import Arbre
-from Pricing_option.Classes_Both.module_pricing_analysis import StrikeComparison, VolComparison, RateComparison
-from Pricing_option.Classes_Both.module_black_scholes import BlackAndScholes
-from Pricing_option.Classes_TrinomialTree.module_grecques_empiriques import GrecquesEmpiriques
+from src.options.Pricing_option.Classes_Both.module_enums import TypeBarriere, DirectionBarriere, ConventionBaseCalendaire, MethodeCalcul, RegType, SensOption, StratOption
+from src.options.Pricing_option.Classes_Both.module_marche import DonneeMarche
+from src.options.Pricing_option.Classes_Both.module_option import Option
+from src.options.Pricing_option.Classes_TrinomialTree.module_barriere import Barriere
+from src.options.Pricing_option.Classes_TrinomialTree.module_arbre_noeud import Arbre
+from src.options.Pricing_option.Classes_Both.module_pricing_analysis import StrikeComparison, VolComparison, RateComparison
+from src.options.Pricing_option.Classes_Both.module_black_scholes import BlackAndScholes
+from src.options.Pricing_option.Classes_TrinomialTree.module_grecques_empiriques import GrecquesEmpiriques
 
-from Pricing_option.Classes_MonteCarlo_LSM.module_brownian import Brownian
-from Pricing_option.Classes_MonteCarlo_LSM.module_LSM import LSM_method
-from Pricing_option.Classes_MonteCarlo_LSM.module_graph import LSMGraph
+from src.options.Pricing_option.Classes_MonteCarlo_LSM.module_brownian import Brownian
+from src.options.Pricing_option.Classes_MonteCarlo_LSM.module_LSM import LSM_method
+from src.options.Pricing_option.Classes_MonteCarlo_LSM.module_graph import LSMGraph
 
-from Pricing_option.Classes_Both.derivatives import OptionDerivatives, OptionDerivativesParameters
+from src.options.Pricing_option.Classes_Both.derivatives import OptionDerivatives, OptionDerivativesParameters
 
-from Strategies_optionnelles.Portfolio_options import OptionsPortfolio
-from Strategies_optionnelles.Strategies_predefinies import OptionsStrategy
+from src.options.HestonPricer.Models.models_european_option import EuropeanOption
+from src.options.HestonPricer.Models.models_heston_parameters import HestonParameters
+from src.options.HestonPricer.Pricing.pricing_monte_carlo_pricer import MonteCarloPricer
+
+from src.Strategies_optionnelles.Portfolio_options import OptionsPortfolio
+from src.Strategies_optionnelles.Strategies_predefinies import OptionsStrategy
 
 #%% Constantes
 
@@ -82,6 +86,8 @@ with tab1 :
     
     dividende_check = st.toggle("Dividende", value=False)
 
+    heston_model_check = st.toggle("Modèle de Heston", value=False)
+
     col21, col22, col23 = st.columns(3)
 
     with col21 : 
@@ -103,7 +109,24 @@ with tab1 :
     else : 
         dividende_ex_date = today
         dividende_montant=0
-    
+
+    if heston_model_check:
+        st.divider()
+        st.subheader("Paramètres du modèle de Heston:")
+        
+        col_h1, col_h2, col_h3 = st.columns(3)
+        
+        with col_h1:
+            kappa = st.number_input("Vitesse de retour à la moyenne (kappa):", format="%.2f", value=1.0, step=0.1)
+            v0 = st.number_input("Variance initiale (v0):", format="%.4f", value=0.04, step=0.01)
+        
+        with col_h2:
+            theta = st.number_input("Variance à long terme (theta):", format="%.4f", value=0.04, step=0.01)
+            sigma = st.number_input("Volatilité de la volatilité (sigma):", format="%.2f", value=0.2, step=0.05)
+        
+        with col_h3:
+            rho = st.number_input("Corrélation (rho):", min_value=-1.0, max_value=1.0, format="%.2f", value=-0.7, step=0.1)
+        
     #Option
     
     st.divider()
@@ -304,7 +327,48 @@ with tab1:
         
         st.metric('''Valeur de l'option :''', value=prix_option, delta=None)
         st.metric('Temps de pricing (secondes) :', value=time_difference, delta=None)
-   
+
+        if heston_model_check:
+            st.divider()
+            st.subheader('Pricing avec le modèle de Heston : ')
+            
+            # Créer les objets pour le pricing Heston
+            heston_params = HestonParameters(kappa, theta, v0, sigma, rho)
+            
+            # Créer l'option européenne avec les paramètres actuels
+            european_option = EuropeanOption(
+                spot_price=spot,
+                strike=strike, 
+                maturity=(maturite-date_pricing).days / convention_base_calendaire,
+                risk_free_rate=risk_free_rate,
+                is_call=True if option_type == "Call" else False
+            )
+            
+            start = time.time()
+            with st.spinner('Valorisation avec le modèle de Heston en cours...'):
+                # Pricing Monte Carlo avec Heston
+                mc_pricer = MonteCarloPricer(european_option, heston_params, nb_paths=nb_chemin, nb_steps=nb_pas)
+                heston_price = mc_pricer.price(random_seed=seed_choice)
+                
+                # Pour obtenir l'intervalle de confiance
+                price_info = mc_pricer.price_multiple(10)  # Faire 10 simulations pour obtenir l'intervalle
+                
+            end = time.time()
+            time_difference = round(end - start, 1)
+            
+            prix_option_heston = f"{round(heston_price, 2)}€"
+            std_error_heston = f"{round(price_info[2], 4)}€"
+            intervalle_heston = f"{round(price_info[0] - price_info[1], 4)}€ - {round(price_info[0] + price_info[1], 4)}€"
+            
+            col11_heston, col2_heston, col3_heston = st.columns(3)
+            with col11_heston:
+                st.metric('''Valeur de l'option (Heston):''', value=prix_option_heston, delta=None)
+                st.metric('Temps de pricing (secondes) :', value=time_difference, delta=None)
+            with col2_heston:
+                st.metric('''Écart type du prix (Heston):''', value=std_error_heston, delta=None)
+            with col3_heston:
+                st.metric('''Intervalle de confiance (95%):''', value=intervalle_heston, delta=None)
+    
     if st.button('Ajouter une option au portfeuille') :
         if 'portfolio' not in st.session_state:
             st.session_state.portfolio = OptionsPortfolio(brownian, donnee_marche)
