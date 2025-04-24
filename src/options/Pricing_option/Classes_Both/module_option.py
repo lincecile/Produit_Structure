@@ -3,13 +3,10 @@ import datetime as dt
 from dataclasses import dataclass
 from typing import Optional
 
-from Pricing_option.Classes_TrinomialTree.module_barriere import Barriere
+from ..Classes_TrinomialTree.module_barriere import Barriere
 
-from Pricing_option.Classes_Both.module_marche import DonneeMarche
-from Pricing_option.Classes_MonteCarlo_LSM.module_brownian import Brownian
-from Pricing_option.Classes_MonteCarlo_LSM.module_regression import RegressionEstimator
-import numpy as np
-import pandas as pd
+from ..Classes_MonteCarlo_LSM.module_brownian import Brownian
+from ..Classes_MonteCarlo_LSM.module_regression import RegressionEstimator
 #%% Classes
 
 @dataclass

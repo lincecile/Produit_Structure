@@ -13,12 +13,14 @@ class Product(ABC):
     """
     def __init__(self, name: str, 
                  price_history: Optional[np.array] = None,
-                 price : Optional[float] = None) -> None:
+                 price : Optional[float] = None,
+                 volatility : Optional[float] = None
+                 ) -> None:
         self.name = name
         self.price_history = price_history if price_history is not None else np.array([])
         self.price = price
-        self.volatily = self.__get_volatility()
-
+        self.volatility = volatility if volatility is not None else self.__get_volatility()
+        
     @abstractmethod
     def _get_price(self) -> float:
         """

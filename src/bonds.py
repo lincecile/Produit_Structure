@@ -5,7 +5,7 @@ from typing import Optional
 
 import datetime as dt
 
-from timing.maturity import Maturity
+from time_utils.maturity import Maturity
 from rate import Rate
 from products import Product
 
@@ -20,9 +20,12 @@ class BondBase(Product):
         rate: Rate,
         maturity: Maturity, 
         face_value: float,
-        price_history: Optional[list[float]] = None
+        price_history: Optional[list[float]] = None,
+        price: Optional[float] = None
     ) -> None:
-        super().__init__(name, price_history)  
+        super().__init__(name=name,
+                         price_history=price_history,
+                         price=price)  
         self.rate = rate
         self.maturity = maturity
         self.face_value = face_value
@@ -54,14 +57,16 @@ class ZCBond(BondBase):
         rate: Rate,
         maturity: Maturity,
         face_value: float,
-        price_history: Optional[list[float]] = None
+        price_history: Optional[list[float]] = None,
+        price: Optional[float] = None
     ) -> None:
         super().__init__(
             name=name,
             rate=rate,
             maturity=maturity,
             face_value=face_value,
-            price_history=price_history
+            price_history=price_history,
+            price=price
         )
 
     def _get_price(self) -> float:
@@ -94,14 +99,16 @@ class Bond(BondBase):
         face_value: float,
         coupon: float,
         nb_coupon: int,
-        price_history: Optional[list[float]] = None
+        price_history: Optional[list[float]] = None,
+        price: Optional[float] = None
     ) -> None:
         super().__init__(
             name=name,
             rate=rate,
             maturity=maturity,
             face_value=face_value,
-            price_history=price_history
+            price_history=price_history,
+            price=price
         )
         self.coupon = coupon
         self.nb_coupon = nb_coupon
