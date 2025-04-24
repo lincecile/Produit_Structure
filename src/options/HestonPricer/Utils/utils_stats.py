@@ -26,8 +26,8 @@ class Stats:
         if x < 0:
             return 1 - Stats.normal_cdf(-x)
         
-        # Using the approximation formula # Approximation vue en cours de c# pour pas utiliser les librairies
-        #  mais sera + précis avec les librairies de Python, à changer ? 
+        # Approximation vue en cours de c# pour ne pas utiliser les librairies
+        #  mais les librairies de Python sont plus précises
         b1 = 0.31938153
         b2 = -0.356563782
         b3 = 1.781477937
