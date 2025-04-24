@@ -21,7 +21,7 @@ class MonteCarloPricer(PricerBase):
         self.nb_paths = nb_paths
         self.nb_steps = nb_steps
     
-    def price(self, random_seed=None):
+    def price(self, random_seed=42):
         """
         Calculate option price using Monte Carlo simulation
         
