@@ -3,7 +3,7 @@
 import numpy as np
 from scipy.stats import norm
 
-from Pricing_option.Classes_TrinomialTree.module_arbre_noeud import Arbre
+from src.options.Pricing_option.Classes_TrinomialTree.module_arbre_noeud import Arbre
   
 #%% Classes
     

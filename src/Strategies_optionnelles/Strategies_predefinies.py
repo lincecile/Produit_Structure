@@ -2,11 +2,11 @@ import numpy as np
 import matplotlib.pyplot as plt
 from typing import List, Dict, Tuple, Union, Optional
 import datetime as dt
-from Pricing_option.Classes_Both.module_option import Option
-from Pricing_option.Classes_Both.module_marche import DonneeMarche
+from src.options.Pricing_option.Classes_Both.module_option import Option
+from src.options.Pricing_option.Classes_Both.module_marche import DonneeMarche
 
 # Import de la classe OptionsPortfolio depuis le fichier options_portfolio.py
-from Strategies_optionnelles.Portfolio_options import OptionsPortfolio
+from src.Strategies_optionnelles.Portfolio_options import OptionsPortfolio
 
 class OptionsStrategy:
     """

@@ -2,11 +2,11 @@ import numpy as np
 import matplotlib.pyplot as plt
 from collections import defaultdict
 from typing import List, Dict, Tuple, Union, Optional
-from Pricing_option.Classes_MonteCarlo_LSM.module_LSM import LSM_method
-from Pricing_option.Classes_Both.module_option import Option
-from Pricing_option.Classes_Both.module_marche import DonneeMarche  
-from Pricing_option.Classes_MonteCarlo_LSM.module_brownian import Brownian
-from Pricing_option.Classes_Both.derivatives import OptionDerivatives
+from src.options.Pricing_option.Classes_MonteCarlo_LSM.module_LSM import LSM_method
+from src.options.Pricing_option.Classes_Both.module_option import Option
+from src.options.Pricing_option.Classes_Both.module_marche import DonneeMarche  
+from src.options.Pricing_option.Classes_MonteCarlo_LSM.module_brownian import Brownian
+from src.options.Pricing_option.Classes_Both.derivatives import OptionDerivatives
 import plotly.graph_objects as go
 import pandas as pd
 class OptionsPortfolio:

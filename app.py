@@ -13,23 +13,23 @@ import plotly.graph_objects as go
 warnings.filterwarnings("ignore")
 sys.setrecursionlimit(1000000000)
 
-from Pricing_option.Classes_Both.module_enums import TypeBarriere, DirectionBarriere, ConventionBaseCalendaire, MethodeCalcul, RegType, SensOption, StratOption
-from Pricing_option.Classes_Both.module_marche import DonneeMarche
-from Pricing_option.Classes_Both.module_option import Option
-from Pricing_option.Classes_TrinomialTree.module_barriere import Barriere
-from Pricing_option.Classes_TrinomialTree.module_arbre_noeud import Arbre
-from Pricing_option.Classes_Both.module_pricing_analysis import StrikeComparison, VolComparison, RateComparison
-from Pricing_option.Classes_Both.module_black_scholes import BlackAndScholes
-from Pricing_option.Classes_TrinomialTree.module_grecques_empiriques import GrecquesEmpiriques
+from src.options.Pricing_option.Classes_Both.module_enums import TypeBarriere, DirectionBarriere, ConventionBaseCalendaire, MethodeCalcul, RegType, SensOption, StratOption
+from src.options.Pricing_option.Classes_Both.module_marche import DonneeMarche
+from src.options.Pricing_option.Classes_Both.module_option import Option
+from src.options.Pricing_option.Classes_TrinomialTree.module_barriere import Barriere
+from src.options.Pricing_option.Classes_TrinomialTree.module_arbre_noeud import Arbre
+from src.options.Pricing_option.Classes_Both.module_pricing_analysis import StrikeComparison, VolComparison, RateComparison
+from src.options.Pricing_option.Classes_Both.module_black_scholes import BlackAndScholes
+from src.options.Pricing_option.Classes_TrinomialTree.module_grecques_empiriques import GrecquesEmpiriques
 
-from Pricing_option.Classes_MonteCarlo_LSM.module_brownian import Brownian
-from Pricing_option.Classes_MonteCarlo_LSM.module_LSM import LSM_method
-from Pricing_option.Classes_MonteCarlo_LSM.module_graph import LSMGraph
+from src.options.Pricing_option.Classes_MonteCarlo_LSM.module_brownian import Brownian
+from src.options.Pricing_option.Classes_MonteCarlo_LSM.module_LSM import LSM_method
+from src.options.Pricing_option.Classes_MonteCarlo_LSM.module_graph import LSMGraph
 
-from Pricing_option.Classes_Both.derivatives import OptionDerivatives, OptionDerivativesParameters
+from src.options.Pricing_option.Classes_Both.derivatives import OptionDerivatives, OptionDerivativesParameters
 
-from Strategies_optionnelles.Portfolio_options import OptionsPortfolio
-from Strategies_optionnelles.Strategies_predefinies import OptionsStrategy
+from src.Strategies_optionnelles.Portfolio_options import OptionsPortfolio
+from src.Strategies_optionnelles.Strategies_predefinies import OptionsStrategy
 
 #%% Constantes
 

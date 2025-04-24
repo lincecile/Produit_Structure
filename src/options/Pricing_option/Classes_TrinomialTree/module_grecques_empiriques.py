@@ -2,7 +2,7 @@ from typing import Union
 import datetime as dt
 import copy
 
-from Pricing_option.Classes_TrinomialTree.module_arbre_noeud import Arbre
+from src.options.Pricing_option.Classes_TrinomialTree.module_arbre_noeud import Arbre
 
 class GrecquesEmpiriques : 
     def __init__(self, arbre : Arbre, var_s : float = 0.01, var_v : float = 0.01, var_t : int = 1, var_r : float = 0.01):
