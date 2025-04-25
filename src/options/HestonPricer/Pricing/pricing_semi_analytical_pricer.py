@@ -1,7 +1,7 @@
 # hestonpricer/pricing/semi_analytical_pricer.py
 import numpy as np
 import cmath
-from src.options.HestonPricer.Pricing.pricing_pricer_base import PricerBase
+from Pricing.pricing_pricer_base import PricerBase
 
 class SemiAnalyticalPricer(PricerBase):
     def __init__(self, option, heston_parameters):

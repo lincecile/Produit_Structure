@@ -355,6 +355,8 @@ with tab1:
             heston_params = HestonParameters(kappa, theta, v0, sigma, rho)
             
             if option_exercice == 'Européenne':
+                #current_file_path = os.path.abspath(__file__)
+                #sys.path.append(src.options.Models)
                 heston_option = EuropeanOption(
                     spot_price=spot,
                     strike=strike, 
