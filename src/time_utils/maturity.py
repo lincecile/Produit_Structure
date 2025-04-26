@@ -22,7 +22,7 @@ class Maturity:
         
     def __assert_non_nulity(self) -> None:
         test1 = (self.start_date is not None) & (self.end_date is not None)
-        test2 = self.start_date < self.end_date
+        test2 = self.start_date <= self.end_date
         test = test1 * test2
         assert test, 'Please enter valid input options for start'
         
