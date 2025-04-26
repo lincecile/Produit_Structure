@@ -84,7 +84,22 @@ class Rate:
     def _get_stochastic_rate(self, num_paths: int = 1, 
                          a: float = None, b: float = None, sigma: float = None,
                          num_steps: int = 252, auto_calibrate: bool = False) -> 'Rate':  # Changed default to False
-
+        """
+        Simulates a stochastic interest rate path using the Vasicek model.
+        Parameters:
+            num_paths (int): The number of simulation paths to generate (default is 1).
+            a (float, optional): The speed of mean reversion parameter. If not provided, defaults based on auto-calibration or other internal settings.
+            b (float, optional): The long-term mean parameter. If not provided, defaults based on auto-calibration or other internal settings.
+            sigma (float, optional): The volatility of the rate process. If not provided, defaults based on auto-calibration or other internal settings.
+            num_steps (int): Number of simulation steps for the interest rate path (default is 252).
+            auto_calibrate (bool): Flag indicating whether to automatically calibrate model parameters using the current rate object if available (default is False).
+        Returns:
+            Rate: A simulated rate path if num_paths is 1; otherwise, a collection of simulated rate paths.
+        Notes:
+            - The simulation uses the longest maturity available from the internal rate curve.
+            - If auto_calibrate is True, the Vasicek model uses the current rate object's interpolation data (if available) to calibrate parameters.
+        """
+        
         rate_curve = self._rate_curve
         sorted_maturities = sorted(rate_curve.keys(), key=lambda m: m.maturity_years)
         maturity = sorted_maturities[-1]  # Use the longest maturity for simulation
