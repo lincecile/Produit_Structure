@@ -13,8 +13,8 @@ import matplotlib.pyplot as plt
 import matplotlib
 matplotlib.use('WebAgg')
 
-from time_utils.maturity import Maturity
-from time_utils.day_count import DayCount
+from .time_utils.maturity import Maturity
+from .time_utils.day_count import DayCount
 
 #%% classes
 
@@ -316,10 +316,6 @@ class Vasicek(InterestRateModels):
         Returns:
             Rate: Rate object containing the simulated rate paths.
         """
-        from rate import Rate, RateType
-        from time_utils.maturity import Maturity
-        import datetime as dt
-        from time_utils.day_count import DayCount
 
         # Simulate rates using the original method
         r = np.zeros((self.num_steps + 1, self.num_paths))
