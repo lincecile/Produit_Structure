@@ -48,6 +48,9 @@ from src.options.HestonPricer.Pricing.pricing_monte_carlo_pricer import MonteCar
 from src.Strategies_optionnelles.Portfolio_options import OptionsPortfolio
 from src.Strategies_optionnelles.Strategies_predefinies import OptionsStrategy
 
+from src.time_utils.maturity import Maturity
+from src.rate import Rate, StochasticRate
+
 #%% Constantes
 
 today= dt.date.today()
@@ -86,6 +89,7 @@ with tab1 :
     
     with col11 : 
         date_pricing = st.date_input("Entrez une date de pricing :", value=today)
+        date_maturite = st.date_input("Entrez une date de maturité :",value=today+ timedelta(days=365))
         
     with col13 : 
         nb_pas = st.number_input("Entrez le nombre de pas utilisé pour le pricing :", 1, 5000, value=100, step=1)
@@ -100,6 +104,8 @@ with tab1 :
     dividende_check = st.toggle("Dividende", value=False)
 
     heston_model_check = st.toggle("Modèle de Heston", value=False)
+    r_increment = 1 if heston_model_check else 0
+    
     vasicek_model_check = st.toggle("Modèle de Vasicek", value=False)
 
     col21, col22, col23 = st.columns(3)
@@ -117,7 +123,16 @@ with tab1 :
             risk_free_rate = st.number_input("Entrez le niveau de taux d'intérêt (en %):", format="%.2f", value=4.0, step=1.00)/100
     else:
         st.success("Taux d'intérêt stochastique")
-        risk_free_rate = np.full(nb_pas+1, 0.04)
+        st_rate = st.number_input("Entrez le niveau de taux d'intérêt de court terme (en %):", format="%.2f", value=3.0, step=1.00)/100
+        lt_rate = st.number_input("Entrez le niveau de taux d'intérêt à long terme (en %):", format="%.2f", value=4.0, step=1.00)/100
+        
+        dates_sto = {
+            Maturity(date_pricing, date_maturite): st_rate,
+            Maturity(date_pricing, date_maturite + timedelta(days=365 * 10)): lt_rate # considérons que le LT c'est 10 ans
+        }
+        
+        stochastic_rate = StochasticRate(rate_curve=dates_sto, num_paths=nb_pas+r_increment)
+        risk_free_rate = stochastic_rate.get_curve()
 
     if dividende_check : 
         with col21 : 
@@ -153,10 +168,10 @@ with tab1 :
     
     col31, col32, col33 = st.columns(3)
     
-    with col31:
-        maturite = st.date_input("Entrez une date de maturité :",value=today+ timedelta(days=10))
+    # with col31:
+        # date_maturite = st.date_input("Entrez une date de maturité :",value=date)
         
-    with col33:
+    with col32:
         barriere_check = st.checkbox("Option à barrière ? (uniquement arbre trinomial)", value=False)
         
     col41, col42, col43 = st.columns(3)
@@ -185,8 +200,7 @@ with tab1 :
         option_type_strat = st.selectbox("Choisissez une stratégie prédéfinie :", [strat.value for strat in StratOption])
         params = {"americaine": st.checkbox("Option américaine", value=True)}
         
-    
-        
+
         if option_type_strat in ["Call Spread", "Put Spread", "Strangle", 'Collar']:
             params["strike1"] = st.number_input("Entrez le strike de la première option :", 0.0, format="%.2f", value=95.0, step=0.01)
             params["strike2"] = st.number_input("Entrez le strike de la seconde option :", 0.0, format="%.2f", value=105.0, step=0.01)
@@ -238,7 +252,7 @@ donnee_marche_LSM = DonneeMarche(date_pricing, spot, volatite, risk_free_rate, r
 if not vasicek_model_check:
     donnee_marche_LSM.taux_interet = np.full(nb_pas+1, risk_free_rate)
 
-option = Option(maturite, strike, barriere=barriere, 
+option = Option(date_maturite, strike, barriere=barriere, 
                 americaine=False if option_exercice == 'Européenne' else True, 
                 call=True if option_type == "Call" else False,
                 date_pricing=date_pricing)
@@ -299,7 +313,7 @@ with tab2 :
     st.divider()
 
 # feed objet LSM
-brownian = Brownian(time_to_maturity=(maturite-date_pricing).days / convention_base_calendaire, nb_step=nb_pas, nb_trajectoire=nb_chemin, seed=seed_choice)
+brownian = Brownian(time_to_maturity=(date_maturite-date_pricing).days / convention_base_calendaire, nb_step=nb_pas, nb_trajectoire=nb_chemin, seed=seed_choice)
 pricer = LSM_method(option)
 
 # portfolio = OptionsPortfolio(brownian,donnee_marche)
@@ -379,7 +393,7 @@ with tab1:
                 heston_option = EuropeanOption(
                     spot_price=spot,
                     strike=strike, 
-                    maturity=(maturite-date_pricing).days / convention_base_calendaire,
+                    maturity=(date_maturite-date_pricing).days / convention_base_calendaire,
                     risk_free_rate=risk_free_rate,
                     is_call=True if option_type == "Call" else False
                 )
@@ -387,7 +401,7 @@ with tab1:
                 heston_option = AsianOption(
                     spot_price=spot,
                     strike=strike, 
-                    maturity=(maturite-date_pricing).days / convention_base_calendaire,
+                    maturity=(date_maturite-date_pricing).days / convention_base_calendaire,
                     risk_free_rate=risk_free_rate,
                     is_call=True if option_type == "Call" else False
                 )
@@ -432,7 +446,7 @@ with tab1:
         if 'portfolio' not in st.session_state:
             st.session_state.portfolio = OptionsPortfolio(brownian, donnee_marche)
 
-        strategy = OptionsStrategy(st.session_state.portfolio, donnee_marche, expiry_date=maturite)
+        strategy = OptionsStrategy(st.session_state.portfolio, donnee_marche, expiry_date=date_maturite)
         
         strategy.create_strategy(option_type_strat, params, 1 if sens_option == 'Long' else -1)  
         st.success(f"Stratégie {option_type_strat} créée avec succès !")
@@ -738,7 +752,7 @@ with tabcomparaison:
                 st.plotly_chart(strike_comparison.graph_strike_comparison())
                 
                 with st.expander(label='Données'): 
-                    st.markdown(f'''Pour une option {option_type} de type {option_exercice}: avec un prix de départ du sous jacent à {spot}, une volatilité à {volatite} et un taux d'intérêt à {risk_free_rate}, une date de pricing au {date_pricing} et une maturité au {maturite}, on obtient le tableau suivant en fonction du strike.''')
+                    st.markdown(f'''Pour une option {option_type} de type {option_exercice}: avec un prix de départ du sous jacent à {spot}, une volatilité à {volatite} et un taux d'intérêt à {risk_free_rate}, une date de pricing au {date_pricing} et une maturité au {date_maturite}, on obtient le tableau suivant en fonction du strike.''')
                     st.dataframe(strike_comparison.results_df.sort_values(by='Strike',ascending=True))
 
         # ###########################################################################
@@ -763,7 +777,7 @@ with tabcomparaison:
                 st.plotly_chart(vol_comparison.graph_vol())
                 
                 with st.expander(label='Données'): 
-                    st.markdown(f'''Pour une option {option_type} de type {option_exercice}: avec un prix de départ du sous jacent à {spot}, une strike à {strike} et un taux d'intérêt à {risk_free_rate}, une date de pricing au {date_pricing} et une maturité au {maturite}, on obtient le tableau suivant en fonction de la voltatilité.''')
+                    st.markdown(f'''Pour une option {option_type} de type {option_exercice}: avec un prix de départ du sous jacent à {spot}, une strike à {strike} et un taux d'intérêt à {risk_free_rate}, une date de pricing au {date_pricing} et une maturité au {date_maturite}, on obtient le tableau suivant en fonction de la voltatilité.''')
                     st.dataframe(vol_comparison.results_df.sort_values(by='Volatilité',ascending=True))
                     
         # ###########################################################################
@@ -788,7 +802,7 @@ with tabcomparaison:
                 st.plotly_chart(rate_comparison.graph_rate())
                 
                 with st.expander(label='Données'): 
-                    st.markdown(f'''Pour une option {option_type} de type {option_exercice}: avec un prix de départ du sous jacent à {spot}, une strike à {strike} et une volatilité à {volatite}, une date de pricing au {date_pricing} et une maturité au {maturite}, on obtient le tableau suivant en fonction du taux d'intérêt.''')
+                    st.markdown(f'''Pour une option {option_type} de type {option_exercice}: avec un prix de départ du sous jacent à {spot}, une strike à {strike} et une volatilité à {volatite}, une date de pricing au {date_pricing} et une maturité au {date_maturite}, on obtient le tableau suivant en fonction du taux d'intérêt.''')
                     st.dataframe(rate_comparison.results_df.sort_values(by='Taux d\'intérêt',ascending=True))
 
 
