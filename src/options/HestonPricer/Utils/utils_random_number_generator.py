@@ -9,7 +9,7 @@ class RandomNumberGenerator:
         
         Args:
             rho: Correlation coefficient (-1 <= rho <= 1)
-            random_state: Random state (optional)
+            random_state: Random state 
             
         Returns:
             tuple: Two correlated normal random variables

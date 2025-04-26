@@ -1,7 +1,7 @@
 # hestonpricer/pricing/pricer_base.py
 from abc import ABC, abstractmethod
 import numpy as np
-from Models.models_heston_parameters import HestonParameters
+from ..Models.models_heston_parameters import HestonParameters
 
 class PricerBase(ABC):
     def __init__(self, option, heston_parameters=None, volatility=None):
@@ -27,6 +27,8 @@ class PricerBase(ABC):
         """Calculate the price of the option"""
         pass
     
+    # A enlever ? Non utilisé sauf si besoin de calculer plusieurs prix ou les sensis
+    '''
     def price_over_parameter(self, parameter, min_val, max_val, steps):
         """
         Calculate option prices for different parameter values
@@ -222,3 +224,4 @@ class PricerBase(ABC):
         
         # Second order central difference
         return (value_plus_h - 2 * value_original + value_minus_h) / (h * h)
+        '''

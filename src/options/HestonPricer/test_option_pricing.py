@@ -5,14 +5,14 @@ from time import time
 import pandas as pd
 
 # Import models
-from Models.models_european_option import EuropeanOption
-from Models.models_asian_option import AsianOption
-from Models.models_heston_parameters import HestonParameters
+from .Models.models_european_option import EuropeanOption
+from .Models.models_asian_option import AsianOption
+from .Models.models_heston_parameters import HestonParameters
 
 # Import pricers
-from Pricing.pricing_black_scholes_pricer import BlackScholesPricer
-from Pricing.pricing_semi_analytical_pricer import SemiAnalyticalPricer
-from Pricing.pricing_monte_carlo_pricer import MonteCarloPricer
+from .Pricing.pricing_black_scholes_pricer import BlackScholesPricer
+from .Pricing.pricing_semi_analytical_pricer import SemiAnalyticalPricer
+from .Pricing.pricing_monte_carlo_pricer import MonteCarloPricer
 
 import sys
 import os
@@ -181,57 +181,58 @@ def test_asian_option():
 #     print(f"Intervalle de confiance (95%): [{price_info[0] - price_info[1]:.4f}, {price_info[0] + price_info[1]:.4f}]")
 #     print(f"Temps de calcul: {mc_time:.2f}s")
 
-# def compare_european_asian():
-#     """Comparaison des options européennes et asiatiques"""
-#     print("\n===== COMPARAISON EUROPÉENNE VS ASIATIQUE =====")
+def compare_european_asian():
+    """Comparaison des options européennes et asiatiques"""
+    print("\n===== COMPARAISON EUROPÉENNE VS ASIATIQUE =====")
     
-#     # Paramètres communs
-#     spot_price = 100.0
-#     maturity = 1.0
-#     risk_free_rate = 0.05
-#     is_call = True
+    # Paramètres communs
+    spot_price = 100.0
+    maturity = 1.0
+    risk_free_rate = 0.05
+    is_call = True
     
-#     # Paramètres du modèle de Heston
-#     kappa = 1.0
-#     theta = 0.04
-#     v0 = 0.04
-#     sigma = 0.2
-#     rho = -0.7
+    # Paramètres du modèle de Heston
+    kappa = 1.0
+    theta = 0.04
+    v0 = 0.04
+    sigma = 0.2
+    rho = -0.7
     
-#     heston_params = HestonParameters(kappa, theta, v0, sigma, rho)
+    heston_params = HestonParameters(kappa, theta, v0, sigma, rho)
     
-#     # Comparison en fonction du strike
-#     strike_range = np.linspace(80, 120, 10)
-#     european_prices = []
-#     asian_prices = []
+    # Comparison en fonction du strike
+    strike_range = np.linspace(80, 120, 10)
+    european_prices = []
+    asian_prices = []
     
-#     for strike in strike_range:
-#         # Option européenne
-#         euro_option = EuropeanOption(spot_price, strike, maturity, risk_free_rate, is_call)
-#         sa_pricer = SemiAnalyticalPricer(euro_option, heston_params)
-#         european_prices.append(sa_pricer.price())
+    for strike in strike_range:
+        # Option européenne
+        euro_option = EuropeanOption(spot_price, strike, maturity, risk_free_rate, is_call)
+        sa_pricer = SemiAnalyticalPricer(euro_option, heston_params)
+        european_prices.append(sa_pricer.price())
         
-#         # Option asiatique
-#         asian_option = AsianOption(spot_price, strike, maturity, risk_free_rate, is_call)
-#         mc_pricer = MonteCarloPricer(asian_option, heston_params, nb_paths=10000, nb_steps=50)
-#         asian_prices.append(mc_pricer.price(random_seed=42))
+        # Option asiatique
+        asian_option = AsianOption(spot_price, strike, maturity, risk_free_rate, is_call)
+        mc_pricer = MonteCarloPricer(asian_option, heston_params, nb_paths=10000, nb_steps=50)
+        asian_prices.append(mc_pricer.price(random_seed=42))
     
-#     # Graphique de comparaison
-#     plt.figure(figsize=(10, 6))
-#     plt.plot(strike_range, european_prices, 'b-', label='Européenne')
-#     plt.plot(strike_range, asian_prices, 'r--', label='Asiatique')
-#     plt.xlabel('Strike')
-#     plt.ylabel('Prix de l\'option')
-#     plt.title('Comparaison des prix d\'options européennes et asiatiques')
-#     plt.legend()
-#     plt.grid(True)
-#     plt.savefig('european_vs_asian.png')
-#     plt.close()
+    # Graphique de comparaison
+    plt.figure(figsize=(10, 6))
+    plt.plot(strike_range, european_prices, 'b-', label='Européenne')
+    plt.plot(strike_range, asian_prices, 'r--', label='Asiatique')
+    plt.xlabel('Strike')
+    plt.ylabel('Prix de l\'option')
+    plt.title('Comparaison des prix d\'options européennes et asiatiques')
+    plt.legend()
+    plt.grid(True)
+    plt.savefig('european_vs_asian.png')
+    plt.close()
     
-#     print("Différence de prix (Européenne - Asiatique):")
-#     for i, strike in enumerate(strike_range):
-#         diff = european_prices[i] - asian_prices[i]
-#         print(f"Strike {strike:.1f}: {diff:.4f}")
+    print("Différence de prix (Européenne - Asiatique):")
+    for i, strike in enumerate(strike_range):
+        diff = european_prices[i] - asian_prices[i]
+        print(f"Strike {strike:.1f}: {diff:.4f}")
+
 def test_pnl_matrix():
     """Test de la matrice de P&L"""
     print("\n===== TEST MATRICE DE P&L =====")
@@ -258,14 +259,14 @@ def test_pnl_matrix():
     # Pricer Monte Carlo
     mc_pricer = MonteCarloPricer(european_option, heston_params, nb_paths=10000, nb_steps=100)
     
-    # Créer l'outil d'analyse avec l'implémentation améliorée
+    # Classe d'analyse
     analyzer = AnalysisTools(european_option, mc_pricer, heston_params)
     
-    # Définir les plages de valeurs à tester
+    # Les plages de valeurs à tester
     spot_range = np.linspace(90, 110, 3)
     vol_range = np.linspace(0.02, 0.06, 3)
     
-    # Calculer la matrice de P&L (nouvelle méthode)
+    # Calculer la matrice de P&L
     print("Calcul de la matrice de P&L...")
     start_time = time()
     pnl_matrix = analyzer.compute_pnl_matrix(
@@ -277,11 +278,9 @@ def test_pnl_matrix():
     calc_time = time() - start_time
     print(f"Temps de calcul: {calc_time:.2f}s")
     
-    # Afficher un aperçu de la matrice
     print("\nAperçu de la matrice de P&L:")
     print(pnl_matrix.round(4))
     
-    # Afficher la matrice sous forme de heatmap
     plt.figure(figsize=(12, 8))
     analyzer.plot_pnl_matrix(pnl_matrix, title="Matrice de P&L - Option Européenne (Heston)")
     plt.savefig('pnl_matrix_european.png')
@@ -313,12 +312,12 @@ def test_stress_scenarios():
     # Pricer Monte Carlo
     mc_pricer = MonteCarloPricer(european_option, heston_params, nb_paths=10000, nb_steps=100)
     
-    # Créer l'outil d'analyse avec l'implémentation améliorée
+    # Classe d'analyse
     analyzer = AnalysisTools(european_option, mc_pricer, heston_params)
     
     # Définir des scénarios de stress
     crisis_scenarios = [
-        # Conditions normales (référence)
+        # Conditions normales (notre référence)
         {'spot_price': 100.0, 'v0': 0.04, 'rho': -0.7},
         
         # Crash 2008
@@ -342,11 +341,9 @@ def test_stress_scenarios():
         "Hausse des taux 2022"
     ]
     
-    # Exécuter les scénarios de stress
     print("Exécution des scénarios de stress...")
     stress_results = analyzer.stress_test(crisis_scenarios, scenario_names)
     
-    # Afficher les résultats
     pd.set_option('display.float_format', '{:.4f}'.format)
     print("\nRésultats des scénarios de stress:")
     print(stress_results)
@@ -376,7 +373,7 @@ def main():
     print("==== TEST DES OUTILS D'ANALYSE D'OPTIONS ====")
 
     #test_pnl_matrix()
-    test_stress_scenarios()
+    #test_stress_scenarios()
 
     print("\nTous les tests sont terminés.")
 

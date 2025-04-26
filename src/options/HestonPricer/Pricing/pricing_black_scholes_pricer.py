@@ -1,8 +1,8 @@
 # hestonpricer/pricing/black_scholes_pricer.py
 import numpy as np
 import math
-from Pricing.pricing_pricer_base import PricerBase
-from Utils.utils_stats import Stats
+from ..Pricing.pricing_pricer_base import PricerBase
+from ..Utils.utils_stats import Stats
 
 class BlackScholesPricer(PricerBase):
     def __init__(self, option, volatility):

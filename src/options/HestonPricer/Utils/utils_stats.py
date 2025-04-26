@@ -12,12 +12,12 @@ class Stats:
     @staticmethod
     def variance(data):
         """Calculate the variance of an array"""
-        return np.var(data, ddof=1)  # ddof=1 for sample variance
+        return np.var(data)
     
     @staticmethod
     def standard_deviation(data):
         """Calculate the standard deviation of an array"""
-        return np.std(data, ddof=1)  # ddof=1 for sample standard deviation
+        return np.std(data)
     
     @staticmethod
     def normal_cdf(x):

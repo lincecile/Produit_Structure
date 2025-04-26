@@ -1,8 +1,8 @@
 # hestonpricer/pricing/monte_carlo_pricer.py
 import numpy as np
-from Pricing.pricing_pricer_base import PricerBase
-from Utils.utils_random_number_generator import RandomNumberGenerator
-from Utils.utils_stats import Stats
+from ..Pricing.pricing_pricer_base import PricerBase
+from ..Utils.utils_random_number_generator import RandomNumberGenerator
+from ..Utils.utils_stats import Stats
 from multiprocessing import Pool
 import functools
 
@@ -15,7 +15,7 @@ class MonteCarloPricer(PricerBase):
             option: Option object
             heston_parameters: Heston model parameters
             nb_paths: Number of Monte Carlo paths
-            nb_steps: Number of time steps for discretization
+            nb_steps: Number of time steps 
         """
         super().__init__(option, heston_parameters=heston_parameters)
         self.nb_paths = nb_paths
@@ -83,6 +83,8 @@ class MonteCarloPricer(PricerBase):
         
         return price
     
+    # A enlever ? Non utilisé sauf si besoin de calculer plusieurs prix ou les sensis
+    '''
     def _price_with_seed(self, seed):
         """Helper function for parallel processing"""
         return self.price(random_seed=seed)
@@ -168,3 +170,4 @@ class MonteCarloPricer(PricerBase):
         # Restore original value
         self._set_variable_value(parameter, original_value)
         return result
+        '''
