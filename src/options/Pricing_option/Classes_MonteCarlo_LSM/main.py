@@ -1,10 +1,10 @@
 # =====================
 # main_pricer.py
 # =====================
-from module_option import Option
-from module_market import MarketEnvironment
+from options.Pricing_option.Classes_Both.module_option import Option
+from options.Pricing_option.Classes_Both.module_marche import DonneeMarche
 from options.Pricing_option.Classes_MonteCarlo_LSM.module_brownian import Brownian
-from module_lsm_barrier import LSM
+from options.Pricing_option.Classes_MonteCarlo_LSM.module_LSM import LSM_method
 
 import datetime as dt
 
@@ -20,11 +20,10 @@ option = Option(
 )
 
 # 2. Définir le marché
-market = MarketEnvironment(
+market = DonneeMarche(
     spot_price=100,             # Spot initial 100
     risk_free_rate=0.02,        # Taux sans risque 2%
-    volatility=0.2,             # Volatilité 20%
-    dividend_yield=0.0          # Pas de dividende continu ici
+    volatilite=0.2,             # Volatilité 20%
 )
 
 # Exemple si tu veux ajouter un dividende discret :
@@ -39,7 +38,7 @@ brownian = Brownian(
 )
 
 # 4. Pricer l'option
-pricer = LSM(option)
+pricer = LSM_method(option)
 prix, ecart_type, intervalle_confiance = pricer.price(
     brownian=brownian,
     market=market,

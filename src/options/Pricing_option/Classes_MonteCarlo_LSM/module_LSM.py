@@ -100,9 +100,16 @@ class LSM_method :
             return self.scalar_method(S0, taux_interet, sigma, q, T, market, brownian)
 
     def compute_intrinsic_value(self, Spot_simule: np.ndarray) -> np.ndarray:
+        
+        barrier_conditions = np.ones(Spot_simule.shape[0], dtype=bool)
+        
+        if hasattr(self.option, 'barrier_condition') and hasattr(self.option, 'type_barriere') and self.option.type_barriere:
+            for i in range(Spot_simule.shape[0]):
+                barrier_conditions[i] = self.option.barrier_condition(Spot_simule[i, :])
+        
         if self.option.call:
-            return np.maximum(Spot_simule[:, -1] - self.option.prix_exercice, 0.0)
-        return np.maximum(self.option.prix_exercice - Spot_simule[:, -1], 0.0)
+            return np.maximum(Spot_simule[:, -1] - self.option.prix_exercice, 0.0) * barrier_conditions
+        return np.maximum(self.option.prix_exercice - Spot_simule[:, -1], 0.0) * barrier_conditions
     
     def lsm_algorithm(self, CF_Vect: np.ndarray, Spot_simule: np.ndarray, brownian: Brownian, 
                       market: DonneeMarche, poly_degree: int, model_type: str) -> np.ndarray:
@@ -110,6 +117,14 @@ class LSM_method :
         for t in range(brownian.nb_step - 1, 0, -1): 
             
             CF_next_actualise = CF_Vect * np.exp(-market.taux_interet[t] * self.option.maturity / brownian.nb_step) # CF au temps suivant actualisé
+            
+            # Calcul des valeurs intrinsèques à l'instant t
+            # Pour les options à barrière, nous devons vérifier la condition sur le chemin jusqu'à t
+            barrier_conditions = np.ones(Spot_simule.shape[0], dtype=bool)
+            if hasattr(self.option, 'barrier_condition') and hasattr(self.option, 'type_barriere') and self.option.type_barriere:
+                for i in range(Spot_simule.shape[0]):
+                    barrier_conditions[i] = self.option.barrier_condition(Spot_simule[i, :t+1])
+                    
             val_intriseque = self.compute_intrinsic_value(Spot_simule[:, t].reshape(-1, 1))                    
             in_the_money = val_intriseque > 0                                                   # Chemins dans la monnaie en t    
             CF_Vect = CF_next_actualise.copy()                                                 # CF en t1 actualisé en t par défaut
