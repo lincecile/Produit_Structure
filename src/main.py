@@ -3,7 +3,7 @@
 # =====================
 from module_option import Option
 from module_market import MarketEnvironment
-from module_brownian import Brownian
+from options.Pricing_option.Classes_MonteCarlo_LSM.module_brownian import Brownian
 from module_lsm_barrier import LSM
 
 import datetime as dt

@@ -5,8 +5,8 @@ import numpy as np
 from typing import Tuple
 from module_option import Option
 from module_market import MarketEnvironment
-from module_brownian import Brownian
-from module_regression import RegressionEstimator
+from options.Pricing_option.Classes_MonteCarlo_LSM.module_brownian import Brownian
+from options.Pricing_option.Classes_MonteCarlo_LSM.module_regression import RegressionEstimator
 
 class LSM:
     def __init__(self, option: Option):

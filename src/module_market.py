@@ -23,31 +23,6 @@ class MarketEnvironment:
         self.dividends_flow = []            # Montant des dividendes associés
         self.dividend_steps = []            # Steps correspondants (calculés plus tard)
 
-    def register_dividend(self, pay_date: date, amount: float):
-        """
-        Cette fonction permet d'enregistrer un dividende à une date précise
-        """
-        self.dividend_dates.append(pay_date)
-        self.dividends_flow.append(amount)
-
-    def list_dividends(self):
-        """
-        Fonction juste pour afficher les dividendes enregistrés (utile pour vérifier)
-        """
-        print("Dividendes enregistrés :")
-        for d, v in zip(self.dividend_dates, self.dividends_flow):
-            print(f"Dividende de {v} versé le {d}")
-
-    def compute_dividend_steps(self, start_date: date, maturity: float, nb_steps: int):
-        """
-        Convertit les dates réelles des dividendes → en steps (t)
-        """
-        dt = maturity / nb_steps
-        self.dividend_steps = [
-            int((div_date - start_date).days / 365 / dt)
-            for div_date in self.dividend_dates
-        ]
-
     def has_dividend(self, step: int) -> bool:
         """
         Vérifie s'il y a un dividende au step t
