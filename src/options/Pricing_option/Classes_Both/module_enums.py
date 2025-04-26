@@ -23,7 +23,6 @@ class SensOption(Enum) :
     short = "Short"
     long = "Long"
 
-
 class StratOption(Enum) : 
     callspread = "Call Spread"
     putspread = "Put Spread"

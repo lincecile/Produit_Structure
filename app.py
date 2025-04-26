@@ -16,7 +16,7 @@ sys.setrecursionlimit(1000000000)
 from src.options.Pricing_option.Classes_Both.module_enums import TypeBarriere, DirectionBarriere, ConventionBaseCalendaire, MethodeCalcul, RegType, SensOption, StratOption
 from src.options.Pricing_option.Classes_Both.module_marche import DonneeMarche
 from src.options.Pricing_option.Classes_Both.module_option import Option
-from src.options.Pricing_option.Classes_TrinomialTree.module_barriere import Barriere
+from src.options.Pricing_option.Classes_Both.module_barriere import Barriere
 from src.options.Pricing_option.Classes_TrinomialTree.module_arbre_noeud import Arbre
 from src.options.Pricing_option.Classes_Both.module_pricing_analysis import StrikeComparison, VolComparison, RateComparison
 from src.options.Pricing_option.Classes_Both.module_black_scholes import BlackAndScholes
@@ -24,7 +24,7 @@ from src.options.Pricing_option.Classes_TrinomialTree.module_grecques_empiriques
 from src.options.Pricing_option.Classes_Both.module_enums import TypeBarriere, DirectionBarriere, ConventionBaseCalendaire, MethodeCalcul, RegType, SensOption, StratOption
 from src.options.Pricing_option.Classes_Both.module_marche import DonneeMarche
 from src.options.Pricing_option.Classes_Both.module_option import Option
-from src.options.Pricing_option.Classes_TrinomialTree.module_barriere import Barriere
+from src.options.Pricing_option.Classes_Both.module_barriere import Barriere
 from src.options.Pricing_option.Classes_TrinomialTree.module_arbre_noeud import Arbre
 from src.options.Pricing_option.Classes_Both.module_pricing_analysis import StrikeComparison, VolComparison, RateComparison
 from src.options.Pricing_option.Classes_Both.module_black_scholes import BlackAndScholes
@@ -172,7 +172,30 @@ with tab1 :
             option_exercice = st.selectbox("Choisissez le type de l'option :", ['Européenne','Asiatique'])
         else:
             option_exercice = st.selectbox("Choisissez le type de l'exercice :", ['Européenne','Américaine']) 
+    
+    #Barrière
         
+    if barriere_check:
+        
+        st.divider()
+        st.subheader("Barrière :")
+        
+        col51, col52, col53 = st.columns(3)
+        
+        with col51 : 
+            niveau_barriere = st.number_input("Entrez le niveau de la barrière (en €):", format="%.2f",value=spot*1.1, step=0.01)
+        
+        with col52 :
+            type_barriere_select = st.selectbox("Choisissez le type de barrière :", [type.value for type in TypeBarriere])
+            type_barriere = TypeBarriere(type_barriere_select)
+        
+        with col53 : 
+            direction_barriere_select = st.selectbox("Choisissez le sens de la barrière :", [direction.value for direction in DirectionBarriere])
+            direction_barriere = DirectionBarriere(direction_barriere_select)
+    else: 
+        niveau_barriere=0
+        type_barriere=None
+        direction_barriere=None
     
     st.divider()
     col412, col422, col432 = st.columns(3)
@@ -204,29 +227,7 @@ with tab1 :
         params["quantity"] = st.number_input("Quantité:",0, value=1, step=1)
         indice = st.number_input("Indice de l'option à supprimer:",0, value=1, step=1)
 
-    #Barrière
-        
-    if barriere_check:
-        
-        st.divider()
-        st.subheader("Barrière :")
-        
-        col51, col52, col53 = st.columns(3)
-        
-        with col51 : 
-            niveau_barriere = st.number_input("Entrez le niveau de la barrière (en €):", format="%.2f",value=spot*1.1, step=0.01)
-        
-        with col52 :
-            type_barriere_select = st.selectbox("Choisissez le type de barrière :", [type.value for type in TypeBarriere])
-            type_barriere = TypeBarriere(type_barriere_select)
-        
-        with col53 : 
-            direction_barriere_select = st.selectbox("Choisissez le sens de la barrière :", [direction.value for direction in DirectionBarriere])
-            direction_barriere = DirectionBarriere(direction_barriere_select)
-    else: 
-        niveau_barriere=0
-        type_barriere=None
-        direction_barriere=None
+    
     
 #Ici, on feed les objets
 

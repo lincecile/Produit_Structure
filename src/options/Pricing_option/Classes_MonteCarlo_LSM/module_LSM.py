@@ -2,6 +2,8 @@
 import datetime as dt
 from dataclasses import dataclass
 from typing import Optional, Tuple
+
+from src.options.Pricing_option.Classes_Both.module_barriere import TypeBarriere, Barriere, DirectionBarriere
 from src.options.Pricing_option.Classes_Both.module_marche import DonneeMarche
 from src.options.Pricing_option.Classes_Both.module_option import Option
 from src.options.Pricing_option.Classes_MonteCarlo_LSM.module_brownian import Brownian
@@ -99,13 +101,72 @@ class LSM_method :
         else:
             return self.scalar_method(S0, taux_interet, sigma, q, T, market, brownian)
 
+    def check_barrier_condition(self, Spot_simule: np.ndarray) -> bool:
+        """
+        Vérifie si la condition de barrière est satisfaite pour un chemin donné,
+        en utilisant les classes TypeBarriere et DirectionBarriere.
+        
+        Args:
+            path: Trajectoire de prix du sous-jacent
+            
+        Returns:
+            bool: True si la condition de barrière est satisfaite, False sinon
+        """
+        
+        if self.option.barriere is None:
+            return np.ones(Spot_simule.shape[0], dtype=bool)
+
+        barrier_value = self.option.barriere.niveau_barriere
+
+        if self.option.barriere.type_barriere is TypeBarriere.knock_in:
+            if self.option.barriere.direction_barriere is DirectionBarriere.up:
+                return np.any(Spot_simule >= barrier_value, axis=1)
+            elif self.option.barriere.direction_barriere is DirectionBarriere.down:
+                return np.any(Spot_simule <= barrier_value, axis=1)
+
+        elif self.option.barriere.type_barriere is TypeBarriere.knock_out:
+            if self.option.barriere.direction_barriere is DirectionBarriere.up:
+                return ~np.any(Spot_simule >= barrier_value, axis=1)
+            elif self.option.barriere.direction_barriere is DirectionBarriere.down:
+                return ~np.any(Spot_simule <= barrier_value, axis=1)
+
+        return np.ones(Spot_simule.shape[0], dtype=bool)
+
+
+    def check_barrier_condition_up_to_t(self, Spot_simule: np.ndarray, t: int) -> np.ndarray:
+        """
+        Vérifie vectoriellement la condition de barrière jusqu'à un instant t inclus.
+
+        Args:
+            Spot_simule: np.ndarray (nb_trajectoires, nb_steps+1)
+            t: int, temps jusqu'auquel vérifier la condition (inclus)
+
+        Returns:
+            np.ndarray: Tableau booléen indiquant si chaque trajectoire respecte la condition jusqu'à t
+        """
+        if self.option.barriere is None:
+            return np.ones(Spot_simule.shape[0], dtype=bool)
+
+        barrier_value = self.option.barriere.niveau_barriere
+        Spot_sub = Spot_simule[:, :t+1]  # on découpe seulement jusqu'à t
+
+        if self.option.barriere.type_barriere is TypeBarriere.knock_in:
+            if self.option.barriere.direction_barriere is DirectionBarriere.up:
+                return np.any(Spot_sub >= barrier_value, axis=1)
+            elif self.option.barriere.direction_barriere is DirectionBarriere.down:
+                return np.any(Spot_sub <= barrier_value, axis=1)
+
+        elif self.option.barriere.type_barriere is TypeBarriere.knock_out:
+            if self.option.barriere.direction_barriere is DirectionBarriere.up:
+                return ~np.any(Spot_sub >= barrier_value, axis=1)
+            elif self.option.barriere.direction_barriere is DirectionBarriere.down:
+                return ~np.any(Spot_sub <= barrier_value, axis=1)
+
+        return np.ones(Spot_simule.shape[0], dtype=bool)
+    
     def compute_intrinsic_value(self, Spot_simule: np.ndarray) -> np.ndarray:
         
-        barrier_conditions = np.ones(Spot_simule.shape[0], dtype=bool)
-        
-        if hasattr(self.option, 'barrier_condition') and hasattr(self.option, 'type_barriere') and self.option.type_barriere:
-            for i in range(Spot_simule.shape[0]):
-                barrier_conditions[i] = self.option.barrier_condition(Spot_simule[i, :])
+        barrier_conditions = self.check_barrier_condition(Spot_simule)
         
         if self.option.call:
             return np.maximum(Spot_simule[:, -1] - self.option.prix_exercice, 0.0) * barrier_conditions
@@ -118,13 +179,14 @@ class LSM_method :
             
             CF_next_actualise = CF_Vect * np.exp(-market.taux_interet[t] * self.option.maturity / brownian.nb_step) # CF au temps suivant actualisé
             
-            # Calcul des valeurs intrinsèques à l'instant t
-            # Pour les options à barrière, nous devons vérifier la condition sur le chemin jusqu'à t
-            barrier_conditions = np.ones(Spot_simule.shape[0], dtype=bool)
-            if hasattr(self.option, 'barrier_condition') and hasattr(self.option, 'type_barriere') and self.option.type_barriere:
+            # Calcul des valeurs intrinsèques à l'instant t avec vérification des barrières
+            barrier_conditions = self.check_barrier_condition_up_to_t(Spot_simule, t)
+
+            if self.option.barriere is not None:
                 for i in range(Spot_simule.shape[0]):
-                    barrier_conditions[i] = self.option.barrier_condition(Spot_simule[i, :t+1])
-                    
+                    # Vérifier la condition jusqu'au temps t inclus
+                    barrier_conditions[i] = self.check_barrier_condition(Spot_simule[i, :t+1])
+        
             val_intriseque = self.compute_intrinsic_value(Spot_simule[:, t].reshape(-1, 1))                    
             in_the_money = val_intriseque > 0                                                   # Chemins dans la monnaie en t    
             CF_Vect = CF_next_actualise.copy()                                                 # CF en t1 actualisé en t par défaut

@@ -2,7 +2,7 @@
 from typing import Union
 from dataclasses import dataclass
 
-from ..Classes_Both.module_enums import TypeBarriere, DirectionBarriere
+from .module_enums import TypeBarriere, DirectionBarriere
 
 #Classes
 

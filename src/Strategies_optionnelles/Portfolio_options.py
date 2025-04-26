@@ -2,6 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from collections import defaultdict
 from typing import List, Dict, Tuple, Union, Optional
+from src.options.Pricing_option.Classes_Both.module_barriere import TypeBarriere, DirectionBarriere
 from src.options.Pricing_option.Classes_MonteCarlo_LSM.module_LSM import LSM_method
 from src.options.Pricing_option.Classes_Both.module_option import Option
 from src.options.Pricing_option.Classes_Both.module_marche import DonneeMarche  
@@ -30,10 +31,12 @@ class OptionsPortfolio:
             quantity: Quantité/nombre de contrats (positif pour position longue, négatif pour position courte)
             premium: Prime payée/reçue par option (optionnel)
         """
-        price, std_error, intevalles = LSM_method(option).LSM(self.brownian, self.market_data)
-        print('add in folio')
+        price, _, _ = LSM_method(option).LSM(self.brownian, self.market_data)
+
         self.options.append({
             'type': 'Call' if option.call else "Put",
+            'barriere': (option.barriere.type_barriere.value + ' - ' + option.barriere.direction_barriere.value) if option.barriere and option.barriere.type_barriere and option.barriere.direction_barriere else np.nan,
+            'niveau barriere': round(option.barriere.niveau_barriere,2) if option.barriere and option.barriere.niveau_barriere else np.nan,
             'strike': option.prix_exercice,
             'quantity': quantity,
             'premium': price,
@@ -45,12 +48,12 @@ class OptionsPortfolio:
 
         for item in self.options:
             rounded_premium = round(float(item['premium']), 2) 
-            key = (item['type'], item['strike'], rounded_premium)
+            key = (item['type'], item['barriere'], item['niveau barriere'], item['strike'], rounded_premium)
             combined[key]['quantity'] += item['quantity']
 
         # Résultat formaté
         result = [
-            {'type': k[0], 'strike': k[1], 'premium': k[2], 'quantity': v['quantity']}
+            {'type': k[0], 'barriere': k[1], 'niveau barriere': k[2], 'strike': k[3], 'premium': k[4], 'quantity': v['quantity']}
             for k, v in combined.items()
         ]
 
@@ -183,6 +186,36 @@ class OptionsPortfolio:
         })
         return df
 
+    def compute_payoff(self, option: Option, spot_prices: np.ndarray, quantity: float, premium: float, show_premium: bool = True):
+        """Calcule le payoff d'une option avec prise en compte de la barrière."""
+        is_call = option.call
+        payoff = np.maximum(0, (spot_prices - option.prix_exercice) if is_call else (option.prix_exercice - spot_prices))
+        
+        # Gestion de la barrière
+        if option.barriere:
+            niveau = option.barriere.niveau_barriere
+
+            if option.barriere.type_barriere is TypeBarriere.knock_in:
+                if option.barriere.direction_barriere is DirectionBarriere.up:
+                    payoff = np.where(spot_prices >= niveau, payoff, 0)
+                elif option.barriere.direction_barriere is DirectionBarriere.down:
+                    payoff = np.where(spot_prices <= niveau, payoff, 0)
+            
+            elif option.barriere.type_barriere is TypeBarriere.knock_out:
+                if option.barriere.direction_barriere is DirectionBarriere.up:
+                    payoff = np.where(spot_prices >= niveau, 0, payoff)
+                elif option.barriere.direction_barriere is DirectionBarriere.down:
+                    payoff = np.where(spot_prices <= niveau, 0, payoff)
+
+        # Prendre en compte la quantité
+        payoff *= quantity
+        
+        # Ajuster la prime si demandé
+        if show_premium:
+            payoff -= quantity * premium
+            
+        return payoff
+
     def plot_portfolio_payoff(self, price_range: float = 0.3, num_points: int = 1000, 
                   show_individual: bool = True, show_premium: bool = True):
         """
@@ -204,25 +237,25 @@ class OptionsPortfolio:
         fig = go.Figure()
         
         for i, option_info in enumerate(self.options):
-            strike = option_info['strike']
+            option = self.option_objects[i]
             quantity = option_info['quantity']
             premium = option_info['premium']
-            is_call = option_info['type'].lower() == 'call'
-            
-            payoff = quantity * np.maximum(0, (spot_prices - strike) if is_call else (strike - spot_prices))
 
-            if show_premium:
-                payoff = payoff - quantity * premium
+            payoff = self.compute_payoff(option, spot_prices, quantity, premium, show_premium=show_premium)
             
-            # Tracer les payoffs individuels si demandé
+            # Plot individuel
+
             if show_individual:
+                bar = option_info['barriere'] if option_info['barriere'] is not np.nan else ' '
+                level = 'niveau = ' + str(option_info['niveau barriere']) if option_info['barriere'] is not np.nan else ' '
+                titre = f"{option_info['type']} {bar} {level} K = {option_info['strike']:.2f} (x{quantity})"
                 fig.add_trace(go.Scatter(
                     x=spot_prices,
                     y=payoff,
                     mode='lines',
                     line=dict(dash='dash', width=1.5),
                     opacity=0.6,
-                    name=f"{option_info['type']} K={strike:.2f} (x{quantity})"
+                    name=titre
                 ))
             
             total_payoff += payoff
@@ -242,11 +275,6 @@ class OptionsPortfolio:
         # Ajouter une ligne verticale pour le prix actuel
         fig.add_vline(x=current_price, line_width=1.5, line_dash="dash", line_color="green",
                     annotation_text=f"Prix actuel S={current_price:.2f}")
-        
-        # Ajouter les strikes des options comme lignes verticales
-        strikes = list(set([opt['strike'] for opt in self.options]))
-        for strike in strikes:
-            fig.add_vline(x=strike, line_width=1, line_dash="dot", line_color="red")
         
         # Configurer la mise en page - optimisé pour Streamlit
         title = "Profit/Perte du portefeuille d'options" + (" (primes incluses)" if show_premium else "")

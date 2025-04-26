@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from typing import Optional
 import numpy as np
 
-from ..Classes_TrinomialTree.module_barriere import Barriere
+from .module_barriere import Barriere
 
 from ..Classes_MonteCarlo_LSM.module_brownian import Brownian
 from ..Classes_MonteCarlo_LSM.module_regression import RegressionEstimator
