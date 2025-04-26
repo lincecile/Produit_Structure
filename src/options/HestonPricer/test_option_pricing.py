@@ -17,9 +17,11 @@ from Pricing.pricing_monte_carlo_pricer import MonteCarloPricer
 import sys
 import os
 
-# Remonter d'un niveau
-parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+# Remonter de 3 niveaux
+current_file_path = os.path.abspath(__file__)
+parent_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(current_file_path))))
 sys.path.append(parent_dir)
+
 # Import analysis tools
 from analysis_tools import AnalysisTools
 
@@ -230,9 +232,8 @@ def test_asian_option():
 #     for i, strike in enumerate(strike_range):
 #         diff = european_prices[i] - asian_prices[i]
 #         print(f"Strike {strike:.1f}: {diff:.4f}")
-
 def test_pnl_matrix():
-    """Test de la matrice de P&L pour une option européenne"""
+    """Test de la matrice de P&L"""
     print("\n===== TEST MATRICE DE P&L =====")
     
     # Paramètres de l'option
@@ -246,28 +247,33 @@ def test_pnl_matrix():
     european_option = EuropeanOption(spot_price, strike, maturity, risk_free_rate, is_call)
     
     # Paramètres du modèle de Heston
-    kappa = 1.0      # Vitesse de retour à la moyenne
-    theta = 0.04     # Variance à long terme
-    v0 = 0.04        # Variance initiale
-    sigma = 0.2      # Volatilité de la volatilité
-    rho = -0.7       # Corrélation
+    kappa = 1.0
+    theta = 0.04
+    v0 = 0.04
+    sigma = 0.2
+    rho = -0.7
     
     heston_params = HestonParameters(kappa, theta, v0, sigma, rho)
     
     # Pricer Monte Carlo
     mc_pricer = MonteCarloPricer(european_option, heston_params, nb_paths=10000, nb_steps=100)
     
-    # Créer l'outil d'analyse
+    # Créer l'outil d'analyse avec l'implémentation améliorée
     analyzer = AnalysisTools(european_option, mc_pricer, heston_params)
     
     # Définir les plages de valeurs à tester
-    spot_range = np.linspace(80, 120, 9)
-    vol_range = np.linspace(0.01, 0.09, 9)  # Valeurs de v0
+    spot_range = np.linspace(90, 110, 3)
+    vol_range = np.linspace(0.02, 0.06, 3)
     
-    # Calculer la matrice de P&L
+    # Calculer la matrice de P&L (nouvelle méthode)
     print("Calcul de la matrice de P&L...")
     start_time = time()
-    pnl_matrix = analyzer.compute_pnl_matrix(spot_range, vol_range, param_name='v0')
+    pnl_matrix = analyzer.compute_pnl_matrix(
+        x_param_name='spot_price',
+        x_param_values=spot_range,
+        y_param_name='v0',
+        y_param_values=vol_range
+    )
     calc_time = time() - start_time
     print(f"Temps de calcul: {calc_time:.2f}s")
     
@@ -277,12 +283,12 @@ def test_pnl_matrix():
     
     # Afficher la matrice sous forme de heatmap
     plt.figure(figsize=(12, 8))
-    fig = analyzer.plot_pnl_matrix(pnl_matrix, title="Matrice de P&L - Option Européenne (Heston)")
+    analyzer.plot_pnl_matrix(pnl_matrix, title="Matrice de P&L - Option Européenne (Heston)")
     plt.savefig('pnl_matrix_european.png')
     plt.close()
 
 def test_stress_scenarios():
-    """Test des scénarios de stress pour une option européenne"""
+    """Test des scénarios de stress"""
     print("\n===== TEST SCÉNARIOS DE STRESS =====")
     
     # Paramètres de l'option
@@ -295,7 +301,7 @@ def test_stress_scenarios():
     # Création de l'option européenne
     european_option = EuropeanOption(spot_price, strike, maturity, risk_free_rate, is_call)
     
-    # Paramètres normaux du modèle de Heston
+    # Paramètres du modèle de Heston
     kappa = 1.0
     theta = 0.04
     v0 = 0.04
@@ -304,28 +310,27 @@ def test_stress_scenarios():
     
     heston_params = HestonParameters(kappa, theta, v0, sigma, rho)
     
-    # Pricer
+    # Pricer Monte Carlo
     mc_pricer = MonteCarloPricer(european_option, heston_params, nb_paths=10000, nb_steps=100)
     
-    # Créer l'outil d'analyse
+    # Créer l'outil d'analyse avec l'implémentation améliorée
     analyzer = AnalysisTools(european_option, mc_pricer, heston_params)
     
-    # Définir des scénarios de stress historique
-    # Inspirés des conditions de marché de différentes périodes de crise
+    # Définir des scénarios de stress
     crisis_scenarios = [
         # Conditions normales (référence)
         {'spot_price': 100.0, 'v0': 0.04, 'rho': -0.7},
         
-        # Crash 2008 - forte baisse du marché + hausse volatilité + forte corrélation négative
+        # Crash 2008
         {'spot_price': 70.0, 'v0': 0.25, 'rho': -0.9},
         
-        # COVID-19 Mars 2020 - chute rapide + volatilité extrême
+        # COVID-19 Mars 2020
         {'spot_price': 65.0, 'v0': 0.35, 'rho': -0.85},
         
-        # Bulle Internet 2000 - baisse progressive + volatilité élevée
+        # Bulle Internet 2000
         {'spot_price': 80.0, 'v0': 0.20, 'rho': -0.75},
         
-        # Hausse des taux 2022 - légère baisse + volatilité modérée + taux élevés
+        # Hausse des taux 2022
         {'spot_price': 90.0, 'v0': 0.15, 'risk_free_rate': 0.08, 'rho': -0.6},
     ]
     
@@ -348,7 +353,7 @@ def test_stress_scenarios():
     
     # Graphique des résultats
     plt.figure(figsize=(12, 6))
-    plt.bar(stress_results['Scenario'], stress_results['P&L Relatif (%)'])
+    plt.bar(stress_results['Scenario'], stress_results['P&L (%)'])
     plt.axhline(y=0, color='r', linestyle='-', alpha=0.3)
     plt.xlabel('Scénario')
     plt.ylabel('P&L Relatif (%)')
@@ -359,49 +364,6 @@ def test_stress_scenarios():
     plt.savefig('stress_test_results.png')
     plt.close()
 
-def test_sensitivity_analysis():
-    """Test d'analyse de sensibilité pour une option asiatique"""
-    print("\n===== TEST ANALYSE DE SENSIBILITÉ =====")
-    
-    # Paramètres de l'option
-    spot_price = 100.0
-    strike = 100.0
-    maturity = 1.0
-    risk_free_rate = 0.05
-    is_call = True
-    
-    # Création de l'option asiatique
-    asian_option = AsianOption(spot_price, strike, maturity, risk_free_rate, is_call)
-    
-    # Paramètres du modèle de Heston
-    kappa = 1.0
-    theta = 0.04
-    v0 = 0.04
-    sigma = 0.2
-    rho = -0.7
-    
-    heston_params = HestonParameters(kappa, theta, v0, sigma, rho)
-    
-    # Pricer Monte Carlo avec moins de simulations pour accélérer
-    mc_pricer = MonteCarloPricer(asian_option, heston_params, nb_paths=5000, nb_steps=50)
-    
-    # Créer l'outil d'analyse
-    analyzer = AnalysisTools(asian_option, mc_pricer, heston_params)
-    
-    # Analyse de sensibilité par rapport à v0 (volatilité initiale)
-    print("Analyse de sensibilité à la volatilité initiale...")
-    v0_range = np.linspace(0.01, 0.25, 10)
-    sensitivity_results = analyzer.sensitivity_analysis('v0', v0_range)
-    
-    # Afficher les résultats
-    print("\nSensibilité à la volatilité initiale (v0):")
-    print(sensitivity_results.round(4))
-    
-    # Graphique des résultats
-    fig = analyzer.plot_sensitivity(sensitivity_results, x_column='v0', y_column='Prix', 
-                                   title="Sensibilité du prix - Option Asiatique")
-    plt.savefig('sensitivity_asian_option.png')
-    plt.close()
 
 
 def main():
@@ -412,11 +374,10 @@ def main():
     #compare_european_asian()
 
     print("==== TEST DES OUTILS D'ANALYSE D'OPTIONS ====")
-    
-    test_pnl_matrix()
-    #test_stress_scenarios()
-    #test_sensitivity_analysis()
-    
+
+    #test_pnl_matrix()
+    test_stress_scenarios()
+
     print("\nTous les tests sont terminés.")
 
 if __name__ == "__main__":

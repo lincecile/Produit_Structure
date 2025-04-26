@@ -41,6 +41,7 @@ from src.options.Pricing_option.Classes_Both.derivatives import OptionDerivative
 from src.options.Pricing_option.Classes_Both.derivatives import OptionDerivatives, OptionDerivativesParameters
 
 from src.options.HestonPricer.Models.models_european_option import EuropeanOption
+from src.options.HestonPricer.Models.models_asian_option import AsianOption
 from src.options.HestonPricer.Models.models_heston_parameters import HestonParameters
 from src.options.HestonPricer.Pricing.pricing_monte_carlo_pricer import MonteCarloPricer
 
@@ -167,7 +168,11 @@ with tab1 :
         option_type = st.selectbox("Choisissez le type de l'option :", ['Call', 'Put'])
         
     with col43:
-        option_exercice = st.selectbox("Choisissez le type de l'exercice :", ['Européenne','Américaine']) 
+        if heston_model_check:
+            option_exercice = st.selectbox("Choisissez le type de l'option :", ['Européenne','Asiatique'])
+        else:
+            option_exercice = st.selectbox("Choisissez le type de l'exercice :", ['Européenne','Américaine']) 
+        
     
     st.divider()
     col412, col422, col432 = st.columns(3)
@@ -305,37 +310,50 @@ with tab1:
             st.divider()
             st.subheader('Pricing Black and Scholes : ')
             st.metric('', value = pricing_bns)
-
-        st.divider()
-        st.subheader('Pricing LSM : ')
         
-
-        start = time.time()
-        with st.spinner('''Valorisation de l'option en cours...''') : 
-            donnee_marche_LSM.taux_interet = np.full(nb_pas+1, risk_free_rate)
-            price, std_error, intevalles = pricer.LSM(brownian, donnee_marche_LSM, 
-                                                      method= 'vector' if calcul_method == 'Vectorielle' else 'scalar', 
-                                                      antithetic = antithetic_choice,
-                                                      poly_degree=poly_degree, model_type=regress_method)
-        end = time.time()
-        time_difference = round(end - start, 1)
-        prix_option = f"{round(price, 2)}€"
-        std_error = f"{round(std_error, 4)}€"
-        intevalles = f"{round(intevalles[0], 4)}€ - {round(intevalles[1], 4)}€"
-        
-        col11_LSM, col2_LSM, col3_LSM = st.columns(3) 
-        with col11_LSM:
-            st.metric('''Valeur de l'option :''', value=prix_option, delta=None)
-            st.metric('Temps de pricing (secondes) :', value=time_difference, delta=None)
-        with col2_LSM:
-            st.metric('''Ecart type du prix de l'option :''', value=std_error, delta=None)
-        with col3_LSM:
-            st.metric('''Intervalle de confiance :''', value=intevalles, delta=None)
+        if option_exercice == 'Asiatique':
+            st.divider()
+            st.error("Le modèle de l'arbre trinomial et LSM ne supportent pas les options asiatiques.")
+        else:
+            st.divider()
+            st.subheader('Pricing LSM : ')
+            start = time.time()
+            with st.spinner('''Valorisation de l'option en cours...''') : 
+                donnee_marche_LSM.taux_interet = np.full(nb_pas+1, risk_free_rate)
+                price, std_error, intevalles = pricer.LSM(brownian, donnee_marche_LSM, 
+                                                        method= 'vector' if calcul_method == 'Vectorielle' else 'scalar', 
+                                                        antithetic = antithetic_choice,
+                                                        poly_degree=poly_degree, model_type=regress_method)
+            end = time.time()
+            time_difference = round(end - start, 1)
+            prix_option = f"{round(price, 2)}€"
+            std_error = f"{round(std_error, 4)}€"
+            intevalles = f"{round(intevalles[0], 4)}€ - {round(intevalles[1], 4)}€"
+            
+            col11_LSM, col2_LSM, col3_LSM = st.columns(3) 
+            with col11_LSM:
+                st.metric('''Valeur de l'option :''', value=prix_option, delta=None)
+                st.metric('Temps de pricing (secondes) :', value=time_difference, delta=None)
+            with col2_LSM:
+                st.metric('''Ecart type du prix de l'option :''', value=std_error, delta=None)
+            with col3_LSM:
+                st.metric('''Intervalle de confiance :''', value=intevalles, delta=None)
 
         if not vasicek_model_check:
             st.divider()
             st.subheader('Pricing avec Arbre : ')
 
+            start = time.time()
+            with st.spinner('''Valorisation de l'option en cours...''') : 
+                arbre.pricer_arbre()
+            end = time.time()
+            time_difference = round(end - start, 1)
+            prix_option = f"{round(arbre.prix_option, 2)}€"
+            
+            # arbre_st = arbre
+            
+            st.metric('''Valeur de l'option :''', value=prix_option, delta=None)
+            st.metric('Temps de pricing (secondes) :', value=time_difference, delta=None)
             start = time.time()
             with st.spinner('''Valorisation de l'option en cours...''') : 
                 arbre.pricer_arbre()
@@ -355,39 +373,52 @@ with tab1:
             # Créer les objets pour le pricing Heston
             heston_params = HestonParameters(kappa, theta, v0, sigma, rho)
             
-            # Créer l'option européenne avec les paramètres actuels
-            european_option = EuropeanOption(
-                spot_price=spot,
-                strike=strike, 
-                maturity=(maturite-date_pricing).days / convention_base_calendaire,
-                risk_free_rate=risk_free_rate,
-                is_call=True if option_type == "Call" else False
-            )
+            if option_exercice == 'Européenne':
+                #current_file_path = os.path.abspath(__file__)
+                #sys.path.append(src.options.Models)
+                heston_option = EuropeanOption(
+                    spot_price=spot,
+                    strike=strike, 
+                    maturity=(maturite-date_pricing).days / convention_base_calendaire,
+                    risk_free_rate=risk_free_rate,
+                    is_call=True if option_type == "Call" else False
+                )
+            elif option_exercice == 'Asiatique':
+                heston_option = AsianOption(
+                    spot_price=spot,
+                    strike=strike, 
+                    maturity=(maturite-date_pricing).days / convention_base_calendaire,
+                    risk_free_rate=risk_free_rate,
+                    is_call=True if option_type == "Call" else False
+                )
+            else:
+                st.error("Le modèle de Heston ne supporte pas les options américaines.")
+                heston_option = None
             
             start = time.time()
             with st.spinner('Valorisation avec le modèle de Heston en cours...'):
                 # Pricing Monte Carlo avec Heston
-                mc_pricer = MonteCarloPricer(european_option, heston_params, nb_paths=nb_chemin, nb_steps=nb_pas)
+                mc_pricer = MonteCarloPricer(heston_option, heston_params, nb_paths=nb_chemin, nb_steps=nb_pas)
                 heston_price = mc_pricer.price(random_seed=seed_choice)
                 
                 # Pour obtenir l'intervalle de confiance
-                price_info = mc_pricer.price_multiple(10)  # Faire 10 simulations pour obtenir l'intervalle
+                # price_info = mc_pricer.price_multiple(10)  # Faire 10 simulations pour obtenir l'intervalle
                 
             end = time.time()
             time_difference = round(end - start, 1)
             
             prix_option_heston = f"{round(heston_price, 2)}€"
-            std_error_heston = f"{round(price_info[2], 4)}€"
-            intervalle_heston = f"{round(price_info[0] - price_info[1], 4)}€ - {round(price_info[0] + price_info[1], 4)}€"
+            #std_error_heston = f"{round(price_info[2], 4)}€"
+            #intervalle_heston = f"{round(price_info[0] - price_info[1], 4)}€ - {round(price_info[0] + price_info[1], 4)}€"
             
             col11_heston, col2_heston, col3_heston = st.columns(3)
             with col11_heston:
-                st.metric('''Valeur de l'option (Heston):''', value=prix_option_heston, delta=None)
+                st.metric('''Valeur de l'option :''', value=prix_option_heston, delta=None)
                 st.metric('Temps de pricing (secondes) :', value=time_difference, delta=None)
-            with col2_heston:
-                st.metric('''Écart type du prix (Heston):''', value=std_error_heston, delta=None)
-            with col3_heston:
-                st.metric('''Intervalle de confiance (95%):''', value=intervalle_heston, delta=None)
+            # with col2_heston:
+            #     st.metric('''Écart type du prix (Heston):''', value=std_error_heston, delta=None)
+            # with col3_heston:
+            #     st.metric('''Intervalle de confiance (95%):''', value=intervalle_heston, delta=None)
     
     if st.button('Ajouter une option au portfeuille') :
         if 'portfolio' not in st.session_state:

@@ -1,7 +1,7 @@
 # hestonpricer/pricing/pricer_base.py
 from abc import ABC, abstractmethod
 import numpy as np
-from src.options.HestonPricer.Models.models_heston_parameters import HestonParameters
+from Models.models_heston_parameters import HestonParameters
 
 class PricerBase(ABC):
     def __init__(self, option, heston_parameters=None, volatility=None):
