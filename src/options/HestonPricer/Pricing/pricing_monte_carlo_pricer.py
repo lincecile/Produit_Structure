@@ -1,8 +1,8 @@
 # hestonpricer/pricing/monte_carlo_pricer.py
 import numpy as np
-from Pricing.pricing_pricer_base import PricerBase
-from Utils.utils_random_number_generator import RandomNumberGenerator
-from Utils.utils_stats import Stats
+from src.options.HestonPricer.Pricing.pricing_pricer_base import PricerBase
+from src.options.HestonPricer.Utils.utils_random_number_generator import RandomNumberGenerator
+from src.options.HestonPricer.Utils.utils_stats import Stats
 from multiprocessing import Pool
 import functools
 

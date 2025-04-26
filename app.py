@@ -319,7 +319,8 @@ with tab1:
             st.subheader('Pricing LSM : ')
             start = time.time()
             with st.spinner('''Valorisation de l'option en cours...''') : 
-                donnee_marche_LSM.taux_interet = np.full(nb_pas+1, risk_free_rate)
+                if not vasicek_model_check:
+                    donnee_marche_LSM.taux_interet = np.full(nb_pas+1, risk_free_rate)
                 price, std_error, intevalles = pricer.LSM(brownian, donnee_marche_LSM, 
                                                         method= 'vector' if calcul_method == 'Vectorielle' else 'scalar', 
                                                         antithetic = antithetic_choice,
@@ -523,18 +524,17 @@ with tab3 :
 
 with tab4 : 
     
-    if arbre.prix_option is not None : 
-
+    
+    if activer_pricing: 
         st.subheader("Grecques empiriques via la méthode LSM: ")
         
-        option_deriv = OptionDerivatives(option, donnee_marche, pricer)  
+        option_deriv = OptionDerivatives(option, donnee_marche_LSM, pricer)  
         
         with st.spinner('''Calcul des grecques en cours...''') :
             delta = round(option_deriv.delta(brownian),2)
             gamma = round(option_deriv.gamma(brownian),2)
             vega = round(option_deriv.vega(brownian)/100,2)
             vomma = round(option_deriv.vomma(brownian)/100,2)
-            # theta = round(option_deriv.theta(brownian)/100,2)
             rho = round(option_deriv.rho(brownian)/100,2)
             
         
@@ -550,7 +550,8 @@ with tab4 :
             st.metric(label='Vomma',value=vomma, delta=None)
         with col15 : 
             st.metric(label='Rho',value=rho, delta=None)
-        
+    
+    if arbre.prix_option is not None: 
         st.divider()
 
         st.subheader("Grecques empiriques via l'arbre Trinomial: ")
