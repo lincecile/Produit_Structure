@@ -99,6 +99,7 @@ with tab1 :
     dividende_check = st.toggle("Dividende", value=False)
 
     heston_model_check = st.toggle("Modèle de Heston", value=False)
+    vasicek_model_check = st.toggle("Modèle de Vasicek", value=False)
 
     col21, col22, col23 = st.columns(3)
 
@@ -109,10 +110,14 @@ with tab1 :
     with col22:
         
         volatite = st.number_input("Entrez le niveau de volatilité (en %):", format="%.2f", value=20.0, step=1.00)/100
-        
-    with col23:
-        risk_free_rate = st.number_input("Entrez le niveau de taux d'intérêt (en %):", format="%.2f", value=4.0, step=1.00)/100
-    
+
+    if not vasicek_model_check:
+        with col23:
+            risk_free_rate = st.number_input("Entrez le niveau de taux d'intérêt (en %):", format="%.2f", value=4.0, step=1.00)/100
+    else:
+        st.success("Taux d'intérêt stochastique")
+        risk_free_rate = np.full(nb_pas+1, 0.04)
+
     if dividende_check : 
         with col21 : 
             dividende_ex_date = st.date_input("Entrez la date de dividende :")
@@ -223,12 +228,14 @@ with tab1 :
 barriere = Barriere(niveau_barriere=niveau_barriere, type_barriere=type_barriere, direction_barriere=direction_barriere)
     
 donnee_marche = DonneeMarche(date_pricing, spot, volatite, risk_free_rate, risk_free_rate, dividende_ex_date, dividende_montant)
+donnee_marche_LSM = DonneeMarche(date_pricing, spot, volatite, risk_free_rate, risk_free_rate, dividende_ex_date, dividende_montant)
+
 option = Option(maturite, strike, barriere=barriere, 
                 americaine=False if option_exercice == 'Européenne' else True, 
                 call=True if option_type == "Call" else False,
                 date_pricing=date_pricing)
 
-bs_check = option.americaine==False and donnee_marche.dividende_montant == 0 and option.barriere.direction_barriere == None
+bs_check = option.americaine==False and donnee_marche.dividende_montant == 0 and option.barriere.direction_barriere == None and not vasicek_model_check
 
 ###########################################################################
 ############# Onglet 2 : Inputs additionnels Utilisateur ##################
@@ -305,8 +312,8 @@ with tab1:
 
         start = time.time()
         with st.spinner('''Valorisation de l'option en cours...''') : 
-
-            price, std_error, intevalles = pricer.LSM(brownian, donnee_marche, 
+            donnee_marche_LSM.taux_interet = np.full(nb_pas+1, risk_free_rate)
+            price, std_error, intevalles = pricer.LSM(brownian, donnee_marche_LSM, 
                                                       method= 'vector' if calcul_method == 'Vectorielle' else 'scalar', 
                                                       antithetic = antithetic_choice,
                                                       poly_degree=poly_degree, model_type=regress_method)
@@ -325,20 +332,21 @@ with tab1:
         with col3_LSM:
             st.metric('''Intervalle de confiance :''', value=intevalles, delta=None)
 
-        st.divider()
-        st.subheader('Pricing avec Arbre : ')
+        if not vasicek_model_check:
+            st.divider()
+            st.subheader('Pricing avec Arbre : ')
 
-        start = time.time()
-        with st.spinner('''Valorisation de l'option en cours...''') : 
-            arbre.pricer_arbre()
-        end = time.time()
-        time_difference = round(end - start, 1)
-        prix_option = f"{round(arbre.prix_option, 2)}€"
-        
-        # arbre_st = arbre
-        
-        st.metric('''Valeur de l'option :''', value=prix_option, delta=None)
-        st.metric('Temps de pricing (secondes) :', value=time_difference, delta=None)
+            start = time.time()
+            with st.spinner('''Valorisation de l'option en cours...''') : 
+                arbre.pricer_arbre()
+            end = time.time()
+            time_difference = round(end - start, 1)
+            prix_option = f"{round(arbre.prix_option, 2)}€"
+            
+            # arbre_st = arbre
+            
+            st.metric('''Valeur de l'option :''', value=prix_option, delta=None)
+            st.metric('Temps de pricing (secondes) :', value=time_difference, delta=None)
 
         if heston_model_check:
             st.divider()

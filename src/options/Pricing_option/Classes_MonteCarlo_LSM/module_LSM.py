@@ -19,8 +19,9 @@ class LSM_method :
     def __init__(self, option: Option):
         self.option = option
     
-    def underlying_paths(self, S0: float, taux_interet: float, sigma: float, W: np.ndarray, timedelta: np.ndarray) -> np.ndarray:
+    def underlying_paths(self, S0: float, taux_interet: np.ndarray, sigma: float, W: np.ndarray, timedelta: np.ndarray) -> np.ndarray:
         """Génère les trajectoires de prix du sous-jacent avec la première colonne initialisée à S0."""
+        print("aaa taux_interet", taux_interet)
         S = S0 * np.exp((taux_interet - sigma**2/2) * timedelta + sigma * W)
         S[:, 0] = S0
         return S
@@ -41,7 +42,7 @@ class LSM_method :
                 (timedelta[position_div + 1:] - timedelta[position_div]) +
                 market.volatilite * (W[:, position_div + 1:] - W[:, position_div][:, np.newaxis]))
 
-    def antithetic_mode(self, S0: float, taux_interet: float, sigma: float, W: np.ndarray, 
+    def antithetic_mode(self, S0: float, taux_interet: np.ndarray, sigma: float, W: np.ndarray, 
                         timedelta: np.ndarray, market: DonneeMarche, brownian: Brownian) -> np.ndarray:
         """ Applique la méthode antithétique. """
         W_neg = -W
@@ -56,7 +57,7 @@ class LSM_method :
         
         return S_T_antithetic
     
-    def vector_method(self, S0: float, taux_interet: float, sigma: float, q: float, 
+    def vector_method(self, S0: float, taux_interet: np.ndarray, sigma: float, q: float, 
                       market: DonneeMarche, brownian: Brownian, antithetic: bool) -> np.ndarray:
         """ Calcule les trajectoires avec la méthode vectorielle. """
         W = brownian.Vecteur()
@@ -71,7 +72,7 @@ class LSM_method :
 
         return S_T
     
-    def scalar_method(self, S0: float, taux_interet: float, sigma: float, q: float, 
+    def scalar_method(self, S0: float, taux_interet: np.ndarray, sigma: float, q: float, 
                       T: float, market: DonneeMarche, brownian: Brownian) -> np.ndarray:
         """ Calcule les trajectoires avec la méthode scalaire. """
         S_T = np.ones((brownian.nb_trajectoire, brownian.nb_step+1)) * S0
@@ -79,7 +80,7 @@ class LSM_method :
         for i in range(brownian.nb_trajectoire):
             W = brownian.Scalaire()
             for j in range(1, brownian.nb_step+1):
-                S_T[i, j] = S_T[i, j-1] * np.exp((taux_interet - sigma**2 / 2) * brownian.step + sigma * (W[j] - W[j-1]))
+                S_T[i, j] = S_T[i, j-1] * np.exp((taux_interet[i, j-1] - sigma**2 / 2) * brownian.step + sigma * (W[j] - W[j-1]))
                 if j == int(position_div):
                     S_T[i, j] -= market.dividende_montant
         return S_T
@@ -102,21 +103,15 @@ class LSM_method :
     def compute_intrinsic_value(self, Spot_simule: np.ndarray) -> np.ndarray:
         if self.option.call:
             return np.maximum(Spot_simule[:, -1] - self.option.prix_exercice, 0.0)
-            # x = 1 if (Spot_simule[:, -1] > 98) and 99 > Spot_simule[:, -1] else 0
-            # print(pd.DataFrame(Spot_simule[:, -1]))
-            # x = np.where(np.logical_and(Spot_simule[:, -1] > 98, Spot_simule[:, -1] < 99), 1, 0)
-            # print(pd.DataFrame(x))
-            # exit()
-            # return x
         return np.maximum(self.option.prix_exercice - Spot_simule[:, -1], 0.0)
     
     def lsm_algorithm(self, CF_Vect: np.ndarray, Spot_simule: np.ndarray, brownian: Brownian, 
                       market: DonneeMarche, poly_degree: int, model_type: str) -> np.ndarray:
         
-
+        print("lsm",market.taux_interet)
         for t in range(brownian.nb_step - 1, 0, -1): 
             
-            CF_next_actualise = CF_Vect * np.exp(-market.taux_interet * self.option.maturity / brownian.nb_step) # CF au temps suivant actualisé
+            CF_next_actualise = CF_Vect * np.exp(-market.taux_interet[t] * self.option.maturity / brownian.nb_step) # CF au temps suivant actualisé
             val_intriseque = self.compute_intrinsic_value(Spot_simule[:, t].reshape(-1, 1))                    
             in_the_money = val_intriseque > 0                                                   # Chemins dans la monnaie en t    
             CF_Vect = CF_next_actualise.copy()                                                 # CF en t1 actualisé en t par défaut
@@ -137,7 +132,7 @@ class LSM_method :
                 CF_Vect[in_the_money]  = np.where(exercise, val_intriseque[in_the_money], CF_next_actualise[in_the_money])
         
         # Valeur en t0
-        CF_Vect = CF_Vect * np.exp(-market.taux_interet * self.option.maturity / brownian.nb_step)
+        CF_Vect = CF_Vect * np.exp(-market.taux_interet[0] * self.option.maturity / brownian.nb_step)
         
         return CF_Vect
     
@@ -155,7 +150,7 @@ class LSM_method :
 
         # Valeur de l'option européenne
         if not self.option.americaine:
-            val_intriseque = val_intriseque * np.exp(-market.taux_interet * self.option.maturity)
+            val_intriseque = val_intriseque * np.exp(-market.taux_interet[-1] * self.option.maturity)
             prix, std_prix, intervalle = self.calculate_price_statistics(val_intriseque, len(val_intriseque), antithetic_info, euro_americain_info, method, print_info=print_info)
             return (prix, std_prix, intervalle)
         
@@ -185,3 +180,4 @@ class LSM_method :
             print(f"Prix max {mode, type_option, method}: {prix + 2 * std_prix}")
         return prix, std_prix, intervalle
         
+# %%
