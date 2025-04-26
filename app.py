@@ -233,7 +233,10 @@ with tab1 :
 barriere = Barriere(niveau_barriere=niveau_barriere, type_barriere=type_barriere, direction_barriere=direction_barriere)
     
 donnee_marche = DonneeMarche(date_pricing, spot, volatite, risk_free_rate, risk_free_rate, dividende_ex_date, dividende_montant)
+
 donnee_marche_LSM = DonneeMarche(date_pricing, spot, volatite, risk_free_rate, risk_free_rate, dividende_ex_date, dividende_montant)
+if not vasicek_model_check:
+    donnee_marche_LSM.taux_interet = np.full(nb_pas+1, risk_free_rate)
 
 option = Option(maturite, strike, barriere=barriere, 
                 americaine=False if option_exercice == 'Européenne' else True, 
@@ -319,8 +322,6 @@ with tab1:
             st.subheader('Pricing LSM : ')
             start = time.time()
             with st.spinner('''Valorisation de l'option en cours...''') : 
-                if not vasicek_model_check:
-                    donnee_marche_LSM.taux_interet = np.full(nb_pas+1, risk_free_rate)
                 price, std_error, intevalles = pricer.LSM(brownian, donnee_marche_LSM, 
                                                         method= 'vector' if calcul_method == 'Vectorielle' else 'scalar', 
                                                         antithetic = antithetic_choice,
@@ -610,6 +611,7 @@ with tab4 :
 # ####################### Onglet 4 : Comparaison ############################
 # ###########################################################################  
 
+
 with tabcomparaison: 
     tab6, tab7, tab8, tab9, tab10, tab11, tab12, tab13, tab14 = st.tabs([ "Comparaison Vectoriel vs Scalaire", 
                                                                                 "Comparaison Seed", "Comparaison Nombre de pas", 
@@ -618,172 +620,203 @@ with tabcomparaison:
                                                                                 "Comparaison Strike","Comparaison Volatilité", "Comparaison Taux d'intérêt"])
 
 
-    # ###########################################################################
-    # #################### Onglet : Vectoriel vs Scalaire #######################
-    # ########################################################################### 
+    if not vasicek_model_check and not heston_model_check:
 
-    with tab6 :
+        # ###########################################################################
+        # #################### Onglet : Vectoriel vs Scalaire #######################
+        # ########################################################################### 
 
-        vectoriel_scalaire_comparison_button = st.button('''Lancer l'analyse comparative''')
-        
-        if vectoriel_scalaire_comparison_button: 
-            with st.spinner("Graphique en cours de réalisation..."):
-                now = time.time()
-                graph_vs = graph.comparer_methodes()
-                st.markdown(f'Résultats après {round(time.time()-now,2)} secondes.')
-                st.plotly_chart(graph_vs, use_container_width=True)
+        with tab6 :
 
-    # ###########################################################################
-    # #################### Onglet : Comparaison Seed ############################
-    # ########################################################################### 
-
-    with tab7 :
-        seed_comparison_button = st.button('''Lancer l'analyse comparative selon la seed''')
-        
-        if seed_comparison_button: 
-            with st.spinner("Graphique en cours de réalisation..."):
-                now = time.time()
-                graph_seed = graph.comparer_seeds()
-                st.markdown(f'Résultats après {round(time.time()-now,2)} secondes.')
-                st.plotly_chart(graph_seed, use_container_width=True)
+            vectoriel_scalaire_comparison_button = st.button('''Lancer l'analyse comparative''')
             
-    
-    # ###########################################################################
-    # #################### Onglet : Nombre de pas ###############################
-    # ########################################################################### 
+            if vectoriel_scalaire_comparison_button: 
+                with st.spinner("Graphique en cours de réalisation..."):
+                    now = time.time()
+                    graph_vs = graph.comparer_methodes()
+                    st.markdown(f'Résultats après {round(time.time()-now,2)} secondes.')
+                    st.plotly_chart(graph_vs, use_container_width=True)
 
-    with tab8 :
-        nb_pas_comparison_button = st.button('''Lancer l'analyse pour le nombre de pas''')
-        
-        if nb_pas_comparison_button: 
-            with st.spinner("Graphique en cours de réalisation..."):
-                now = time.time()
-                graph_nb_pas = graph.comparer_steps()
-                st.markdown(f'Résultats après {round(time.time()-now,2)} secondes.')
-                st.plotly_chart(graph_nb_pas, use_container_width=True)
-    
-    # ###########################################################################
-    # ######################## Onglet : Nombre de chemin ########################
-    # ########################################################################### 
+        # ###########################################################################
+        # #################### Onglet : Comparaison Seed ############################
+        # ########################################################################### 
 
-    with tab9 :
-        path_comparison_button = st.button('''Lancer l'analyse comparative selon le nombre de chemin''')
-        
-        if path_comparison_button: 
-            with st.spinner("Graphique en cours de réalisation..."):
-                now = time.time()
-                graph_path = graph.comparer_convergence_paths()
-                st.markdown(f'Résultats après {round(time.time()-now,2)} secondes.')
-                st.plotly_chart(graph_path, use_container_width=True)
+        with tab7 :
+            seed_comparison_button = st.button('''Lancer l'analyse comparative selon la seed''')
             
-    # ###########################################################################
-    # #################### Onglet : Comparaison Polynôme ########################
-    # ########################################################################### 
-
-    with tab10 :
-        poly_comparison_button = st.button('''Lancer l'analyse comparative selon le polynôme''')
-        
-        if poly_comparison_button: 
-            with st.spinner("Graphique en cours de réalisation..."):
-                now = time.time()
-                graph_poly, df_results = graph.comparer_polynomes()
-                st.markdown(f'Résultats après {round(time.time()-now,2)} secondes.')
-                st.plotly_chart(graph_poly, use_container_width=True)
-                # st.dataframe(df_results)
-
-    # ###########################################################################
-    # #################### Onglet : Comparaison Degré ###########################
-    # ########################################################################### 
-
-    with tab11 :
-        degree_comparison_button = st.button('''Lancer l'analyse comparative selon le degré des polynômes''')
-        
-        if degree_comparison_button:
-
-            st.subheader('''Prix LSM selon le niveau de degré des polynômes''')
-
-            with st.spinner("Graphique en cours de réalisation..."):
-                now = time.time()
-                graph_degree, df_results = graph.comparer_degres_par_type()
-                st.markdown(f'Résultats après {round(time.time()-now,2)} secondes.')
-                st.plotly_chart(graph_degree, use_container_width=True)
-                # st.dataframe(df_results)
-
-
-    # ###########################################################################
-    # ##################### Onglet : Strike Comparaison #########################
-    # ###########################################################################
-
-    with tab12 : 
-        max_cpu = st.number_input('''Veuillez choisir le nombre de coeur qui sera mis à contribution pour le multiprocessing (choisir 1 revient à ne pas en faire, monter trop haut peut induire de l'instabilité.):''',1,os.cpu_count(),4,1,key='strike')
-        strike_comparison_button = st.button('''Lancer l'analyse comparative (l'opération prend environ 2min)''')
-        
-        if strike_comparison_button:
-            now = time.time()
-            # @st.cache_resource
-            def call_strike_comparison() :
-                step_list=[20]
-                strike_list = np.arange(spot-10, spot+10, 0.5)
-                return StrikeComparison(max_cpu, step_list, strike_list, donnee_marche, brownian, option)
-            
-            st.subheader('''Différence d'écart selon le niveau de strike''')
-
-            strike_comparison = call_strike_comparison()
-
-            st.markdown(f'Résultats après {round(time.time()-now,2)} secondes.')
-            st.plotly_chart(strike_comparison.graph_strike_comparison())
-            
-            with st.expander(label='Données'): 
-                st.markdown(f'''Pour une option {option_type} de type {option_exercice}: avec un prix de départ du sous jacent à {spot}, une volatilité à {volatite} et un taux d'intérêt à {risk_free_rate}, une date de pricing au {date_pricing} et une maturité au {maturite}, on obtient le tableau suivant en fonction du strike.''')
-                st.dataframe(strike_comparison.results_df.sort_values(by='Strike',ascending=True))
-
-    # ###########################################################################
-    # ################## Onglet 7 : Volatilité Comparaison ######################
-    # ###########################################################################
-
-    with tab13 : 
-        max_cpu = st.number_input('''Veuillez choisir le nombre de coeur qui sera mis à contribution pour le multiprocessing (choisir 1 revient à ne pas en faire, monter trop haut peut induire de l'instabilité.):''',1,os.cpu_count(),4,1,key='vol')
-        vol_comparison_button = st.button('''Lancer l'analyse comparative (l'opération prend environ 1.5min)''')
-        
-        if vol_comparison_button :
-            now = time.time()
-            # @st.cache_resource
-            def call_vol_comparison():
-                step_list=[20]
-                vol_list=np.arange(0.01,1,0.01)
-                return VolComparison(max_cpu,step_list, vol_list, donnee_marche, brownian, option)
-            
-            vol_comparison = call_vol_comparison()
-            
-            st.markdown(f'Résultats après {round(time.time()-now,2)} secondes.')
-            st.plotly_chart(vol_comparison.graph_vol())
-            
-            with st.expander(label='Données'): 
-                st.markdown(f'''Pour une option {option_type} de type {option_exercice}: avec un prix de départ du sous jacent à {spot}, une strike à {strike} et un taux d'intérêt à {risk_free_rate}, une date de pricing au {date_pricing} et une maturité au {maturite}, on obtient le tableau suivant en fonction de la voltatilité.''')
-                st.dataframe(vol_comparison.results_df.sort_values(by='Volatilité',ascending=True))
+            if seed_comparison_button: 
+                with st.spinner("Graphique en cours de réalisation..."):
+                    now = time.time()
+                    graph_seed = graph.comparer_seeds()
+                    st.markdown(f'Résultats après {round(time.time()-now,2)} secondes.')
+                    st.plotly_chart(graph_seed, use_container_width=True)
                 
-    # ###########################################################################
-    # ################## Onglet 7 : Intérêt Comparaison ######################
-    # ###########################################################################
-
-    with tab14 : 
-        max_cpu = st.number_input('''Veuillez choisir le nombre de coeur qui sera mis à contribution pour le multiprocessing (choisir 1 revient à ne pas en faire, monter trop haut peut induire de l'instabilité.):''',1,os.cpu_count(),4,1,key='rate')
-        rate_comparison_button = st.button('''Lancer l'analyse comparative (l'opération prend environ 2 min)''')
         
-        if rate_comparison_button :
-            now = time.time()
-            @st.cache_resource
-            def call_rate_comparison():
-                step_list=[20]
-                rate_list=np.arange(-0.5,0.5,0.01)
-                return RateComparison(max_cpu, step_list, rate_list, donnee_marche, brownian, option)
-            
-            rate_comparison = call_rate_comparison()
-            
-            st.markdown(f'Résultats après {round(time.time()-now,2)} secondes.')
-            st.plotly_chart(rate_comparison.graph_rate())
-            
-            with st.expander(label='Données'): 
-                st.markdown(f'''Pour une option {option_type} de type {option_exercice}: avec un prix de départ du sous jacent à {spot}, une strike à {strike} et une volatilité à {volatite}, une date de pricing au {date_pricing} et une maturité au {maturite}, on obtient le tableau suivant en fonction du taux d'intérêt.''')
-                st.dataframe(rate_comparison.results_df.sort_values(by='Taux d\'intérêt',ascending=True))
+        # ###########################################################################
+        # #################### Onglet : Nombre de pas ###############################
+        # ########################################################################### 
 
+        with tab8 :
+            nb_pas_comparison_button = st.button('''Lancer l'analyse pour le nombre de pas''')
+            
+            if nb_pas_comparison_button: 
+                with st.spinner("Graphique en cours de réalisation..."):
+                    now = time.time()
+                    graph_nb_pas = graph.comparer_steps()
+                    st.markdown(f'Résultats après {round(time.time()-now,2)} secondes.')
+                    st.plotly_chart(graph_nb_pas, use_container_width=True)
+        
+        # ###########################################################################
+        # ######################## Onglet : Nombre de chemin ########################
+        # ########################################################################### 
+
+        with tab9 :
+            path_comparison_button = st.button('''Lancer l'analyse comparative selon le nombre de chemin''')
+            
+            if path_comparison_button: 
+                with st.spinner("Graphique en cours de réalisation..."):
+                    now = time.time()
+                    graph_path = graph.comparer_convergence_paths()
+                    st.markdown(f'Résultats après {round(time.time()-now,2)} secondes.')
+                    st.plotly_chart(graph_path, use_container_width=True)
+                
+        # ###########################################################################
+        # #################### Onglet : Comparaison Polynôme ########################
+        # ########################################################################### 
+
+        with tab10 :
+            poly_comparison_button = st.button('''Lancer l'analyse comparative selon le polynôme''')
+            
+            if poly_comparison_button: 
+                with st.spinner("Graphique en cours de réalisation..."):
+                    now = time.time()
+                    graph_poly, df_results = graph.comparer_polynomes()
+                    st.markdown(f'Résultats après {round(time.time()-now,2)} secondes.')
+                    st.plotly_chart(graph_poly, use_container_width=True)
+                    # st.dataframe(df_results)
+
+        # ###########################################################################
+        # #################### Onglet : Comparaison Degré ###########################
+        # ########################################################################### 
+
+        with tab11 :
+            degree_comparison_button = st.button('''Lancer l'analyse comparative selon le degré des polynômes''')
+            
+            if degree_comparison_button:
+
+                st.subheader('''Prix LSM selon le niveau de degré des polynômes''')
+
+                with st.spinner("Graphique en cours de réalisation..."):
+                    now = time.time()
+                    graph_degree, df_results = graph.comparer_degres_par_type()
+                    st.markdown(f'Résultats après {round(time.time()-now,2)} secondes.')
+                    st.plotly_chart(graph_degree, use_container_width=True)
+                    # st.dataframe(df_results)
+
+
+        # ###########################################################################
+        # ##################### Onglet : Strike Comparaison #########################
+        # ###########################################################################
+
+        with tab12 : 
+            max_cpu = st.number_input('''Veuillez choisir le nombre de coeur qui sera mis à contribution pour le multiprocessing (choisir 1 revient à ne pas en faire, monter trop haut peut induire de l'instabilité.):''',1,os.cpu_count(),4,1,key='strike')
+            strike_comparison_button = st.button('''Lancer l'analyse comparative (l'opération prend environ 2min)''')
+            
+            if strike_comparison_button:
+                now = time.time()
+                # @st.cache_resource
+                def call_strike_comparison() :
+                    step_list=[20]
+                    strike_list = np.arange(spot-10, spot+10, 0.5)
+                    return StrikeComparison(max_cpu, step_list, strike_list, donnee_marche, brownian, option)
+                
+                st.subheader('''Différence d'écart selon le niveau de strike''')
+
+                strike_comparison = call_strike_comparison()
+
+                st.markdown(f'Résultats après {round(time.time()-now,2)} secondes.')
+                st.plotly_chart(strike_comparison.graph_strike_comparison())
+                
+                with st.expander(label='Données'): 
+                    st.markdown(f'''Pour une option {option_type} de type {option_exercice}: avec un prix de départ du sous jacent à {spot}, une volatilité à {volatite} et un taux d'intérêt à {risk_free_rate}, une date de pricing au {date_pricing} et une maturité au {maturite}, on obtient le tableau suivant en fonction du strike.''')
+                    st.dataframe(strike_comparison.results_df.sort_values(by='Strike',ascending=True))
+
+        # ###########################################################################
+        # ################## Onglet 7 : Volatilité Comparaison ######################
+        # ###########################################################################
+
+        with tab13 : 
+            max_cpu = st.number_input('''Veuillez choisir le nombre de coeur qui sera mis à contribution pour le multiprocessing (choisir 1 revient à ne pas en faire, monter trop haut peut induire de l'instabilité.):''',1,os.cpu_count(),4,1,key='vol')
+            vol_comparison_button = st.button('''Lancer l'analyse comparative (l'opération prend environ 1.5min)''')
+            
+            if vol_comparison_button :
+                now = time.time()
+                # @st.cache_resource
+                def call_vol_comparison():
+                    step_list=[20]
+                    vol_list=np.arange(0.01,1,0.01)
+                    return VolComparison(max_cpu,step_list, vol_list, donnee_marche, brownian, option)
+                
+                vol_comparison = call_vol_comparison()
+                
+                st.markdown(f'Résultats après {round(time.time()-now,2)} secondes.')
+                st.plotly_chart(vol_comparison.graph_vol())
+                
+                with st.expander(label='Données'): 
+                    st.markdown(f'''Pour une option {option_type} de type {option_exercice}: avec un prix de départ du sous jacent à {spot}, une strike à {strike} et un taux d'intérêt à {risk_free_rate}, une date de pricing au {date_pricing} et une maturité au {maturite}, on obtient le tableau suivant en fonction de la voltatilité.''')
+                    st.dataframe(vol_comparison.results_df.sort_values(by='Volatilité',ascending=True))
+                    
+        # ###########################################################################
+        # ################## Onglet 7 : Intérêt Comparaison ######################
+        # ###########################################################################
+
+        with tab14 : 
+            max_cpu = st.number_input('''Veuillez choisir le nombre de coeur qui sera mis à contribution pour le multiprocessing (choisir 1 revient à ne pas en faire, monter trop haut peut induire de l'instabilité.):''',1,os.cpu_count(),4,1,key='rate')
+            rate_comparison_button = st.button('''Lancer l'analyse comparative (l'opération prend environ 2 min)''')
+            
+            if rate_comparison_button :
+                now = time.time()
+                @st.cache_resource
+                def call_rate_comparison():
+                    step_list=[20]
+                    rate_list=np.arange(-0.5,0.5,0.01)
+                    return RateComparison(max_cpu, step_list, rate_list, donnee_marche, brownian, option)
+                
+                rate_comparison = call_rate_comparison()
+                
+                st.markdown(f'Résultats après {round(time.time()-now,2)} secondes.')
+                st.plotly_chart(rate_comparison.graph_rate())
+                
+                with st.expander(label='Données'): 
+                    st.markdown(f'''Pour une option {option_type} de type {option_exercice}: avec un prix de départ du sous jacent à {spot}, une strike à {strike} et une volatilité à {volatite}, une date de pricing au {date_pricing} et une maturité au {maturite}, on obtient le tableau suivant en fonction du taux d'intérêt.''')
+                    st.dataframe(rate_comparison.results_df.sort_values(by='Taux d\'intérêt',ascending=True))
+
+
+    else:
+        with tab6 :
+
+            st.error('Désactiver le modèle Vasicek/Heston')
+
+        with tab7 :
+            st.error('Désactiver le modèle Vasicek/Heston')
+                
+        with tab8 :
+            st.error('Désactiver le modèle Vasicek/Heston')
+        
+        with tab9 :
+            st.error('Désactiver le modèle Vasicek/Heston')
+
+        with tab10 :
+            st.error('Désactiver le modèle Vasicek/Heston')
+
+        with tab11 :
+           st.error('Désactiver le modèle Vasicek/Heston')
+
+        with tab12 : 
+            st.error('Désactiver le modèle Vasicek/Heston')
+
+        with tab13 : 
+            st.error('Désactiver le modèle Vasicek/Heston')
+
+        with tab14 : 
+            st.error('Désactiver le modèle Vasicek/Heston')

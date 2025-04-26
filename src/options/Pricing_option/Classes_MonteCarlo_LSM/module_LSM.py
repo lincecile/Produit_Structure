@@ -21,7 +21,6 @@ class LSM_method :
     
     def underlying_paths(self, S0: float, taux_interet: np.ndarray, sigma: float, W: np.ndarray, timedelta: np.ndarray) -> np.ndarray:
         """Génère les trajectoires de prix du sous-jacent avec la première colonne initialisée à S0."""
-        print("aaa taux_interet", taux_interet)
         S = S0 * np.exp((taux_interet - sigma**2/2) * timedelta + sigma * W)
         S[:, 0] = S0
         return S
@@ -80,7 +79,7 @@ class LSM_method :
         for i in range(brownian.nb_trajectoire):
             W = brownian.Scalaire()
             for j in range(1, brownian.nb_step+1):
-                S_T[i, j] = S_T[i, j-1] * np.exp((taux_interet[i, j-1] - sigma**2 / 2) * brownian.step + sigma * (W[j] - W[j-1]))
+                S_T[i, j] = S_T[i, j-1] * np.exp((taux_interet[j-1] - sigma**2 / 2) * brownian.step + sigma * (W[j] - W[j-1]))
                 if j == int(position_div):
                     S_T[i, j] -= market.dividende_montant
         return S_T
@@ -108,7 +107,6 @@ class LSM_method :
     def lsm_algorithm(self, CF_Vect: np.ndarray, Spot_simule: np.ndarray, brownian: Brownian, 
                       market: DonneeMarche, poly_degree: int, model_type: str) -> np.ndarray:
         
-        print("lsm",market.taux_interet)
         for t in range(brownian.nb_step - 1, 0, -1): 
             
             CF_next_actualise = CF_Vect * np.exp(-market.taux_interet[t] * self.option.maturity / brownian.nb_step) # CF au temps suivant actualisé
@@ -139,6 +137,15 @@ class LSM_method :
     def LSM(self, brownian: Brownian, market: DonneeMarche, poly_degree: int = 2, 
             model_type: str = "Polynomial", method: str = 'vector', 
             antithetic: bool = False, print_info: bool = False) -> Tuple[float, float, Tuple[float, float]]:
+        
+
+        if isinstance(market.taux_interet, (float, int)):
+            # Convertit en array avec la même valeur répétée pour chaque pas de temps
+            market.taux_interet = np.full(brownian.nb_step+1 , market.taux_interet)
+        elif isinstance(market.taux_interet, np.ndarray) and len(market.taux_interet) != brownian.nb_step + 1:
+            # Rebuild si c'est un array mais pas de la bonne taille, utile pour le graphique
+            market.taux_interet = np.full(brownian.nb_step + 1, market.taux_interet[0])
+
         # Prix du sous-jacent simulé
         Spot_simule = self.Price(market, brownian, method=method, antithetic=antithetic)
 

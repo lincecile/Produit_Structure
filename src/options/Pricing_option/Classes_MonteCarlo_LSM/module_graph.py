@@ -407,9 +407,9 @@ class LSMGraph:
         std_devs = []
 
         for steps in nb_steps_list:
-            # print(steps)
             pricer = LSM_method(self.option)
             brownian = Brownian(self.period, steps, nb_paths, seed)
+            
             price, std_error, _ = pricer.LSM(brownian, self.market, method='vector')
 
             prices.append(price)
