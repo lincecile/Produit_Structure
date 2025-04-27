@@ -417,6 +417,15 @@ class StructuredProductsStrategy:
         
         return total_price
     
+    def athena_autocall(self,
+                autocall_barrier_levels: List[float],
+                autocall_coupon_rates: List[float],
+                protection_barrier_level: float,
+                observation_dates: List[dt.date] = None,
+                notional: float = 100.0) -> None:
+        pass
+
+    
     def create_strategy(self, product_name: str, params: dict, quantity: float = 1.0) -> None:
         """
         Crée un produit structuré prédéfini en fonction du nom du produit
@@ -457,9 +466,15 @@ class StructuredProductsStrategy:
                 is_knock_in=params.get("is_knock_in", True),
                 notional=notional
             )
-        else:
-            raise ValueError(f"Type de produit structuré non reconnu: {product_name}")
-        
+        elif product_name == "athena autocall":
+            self.athena_autocall(
+                autocall_barrier_levels=params.get("autocall_barrier_levels", [1.0, 0.95, 0.90]),
+                autocall_coupon_rates=params.get("autocall_coupon_rates", [0.05, 0.10, 0.15]),
+                protection_barrier_level=params.get("protection_barrier_level", 0.7),
+                observation_dates=params.get("observation_dates", None),
+                notional=notional
+            )
+            
         # Mettre à jour la quantité si nécessaire
         if quantity != 1.0:
             # Récupérer le dernier produit ajouté
