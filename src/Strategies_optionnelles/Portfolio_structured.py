@@ -2,13 +2,13 @@ import numpy as np
 import matplotlib.pyplot as plt
 from collections import defaultdict, Counter
 from typing import List, Dict, Tuple, Union, Optional
-from src.products import Product
-from src.options.Pricing_option.Classes_Both.module_barriere import TypeBarriere, DirectionBarriere
-from src.options.Pricing_option.Classes_MonteCarlo_LSM.module_LSM import LSM_method
-from src.options.Pricing_option.Classes_Both.module_option import Option
-from src.options.Pricing_option.Classes_Both.module_marche import DonneeMarche  
-from src.options.Pricing_option.Classes_MonteCarlo_LSM.module_brownian import Brownian
-from src.options.Pricing_option.Classes_Both.derivatives import OptionDerivatives
+from products import Product
+from options.Pricing_option.Classes_Both.module_barriere import TypeBarriere, DirectionBarriere
+from options.Pricing_option.Classes_MonteCarlo_LSM.module_LSM import LSM_method
+from options.Pricing_option.Classes_Both.module_option import Option
+from options.Pricing_option.Classes_Both.module_marche import DonneeMarche  
+from options.Pricing_option.Classes_MonteCarlo_LSM.module_brownian import Brownian
+from options.Pricing_option.Classes_Both.derivatives import OptionDerivatives
 import plotly.graph_objects as go
 import pandas as pd
 
@@ -36,7 +36,7 @@ class StructuredProductsPortfolio:
         self.price = price or 0.0
         self.volatility = volatility
         
-        self.products = [] 
+        self.structured_products = []  # initialize the list of structured products
     
     def add_structured_product(self, product_name: str, product_type: str, components: list, 
                               price: float, quantity: float = 1.0):
@@ -50,7 +50,7 @@ class StructuredProductsPortfolio:
             price: Prix total du produit
             quantity: Quantité de produits à ajouter
         """
-        self.products.append({
+        self.structured_products.append({
             'name': product_name,
             'type': product_type,
             'components': components,
@@ -62,11 +62,17 @@ class StructuredProductsPortfolio:
         # Mettre à jour le prix du portefeuille
         self.price = self._calculate_portfolio_price()
 
+    def _calculate_portfolio_price(self):
+        total = 0.0
+        for product in self.structured_products:
+            total += product['price'] * product['quantity']
+        return total
+
     def clear_portfolio(self) -> None:
         """
         Vide le portefeuille de produits structurés.
         """
-        self.products.clear()
+        self.structured_products.clear()
         self.price = 0.0
         
     def remove_product(self, product_index: int, quantity_to_remove: float) -> bool:
@@ -79,25 +85,25 @@ class StructuredProductsPortfolio:
         Returns:
             bool: True si l'opération a réussi, False sinon
         """
-        if product_index < 0 or product_index >= len(self.products):
-            print(f"Erreur: Index de produit invalide ({product_index}). Le portefeuille contient {len(self.products)} produits.")
+        if product_index < 0 or product_index >= len(self.structured_products):
+            print(f"Erreur: Index de produit invalide ({product_index}). Le portefeuille contient {len(self.structured_products)} produits.")
         
-        current_quantity = self.products[product_index]['quantity']
+        current_quantity = self.structured_products[product_index]['quantity']
         
         if (abs(quantity_to_remove) > abs(current_quantity)) or (abs(quantity_to_remove) == abs(current_quantity)):
-            del self.products[product_index]
+            del self.structured_products[product_index]
         else:
             # Sinon, on réduit la quantité
             # On garde le signe de la position (long/short)
             sign = 1 if current_quantity > 0 else -1
-            self.products[product_index]['quantity'] -= quantity_to_remove * sign
+            self.structured_products[product_index]['quantity'] -= quantity_to_remove * sign
         
         # Mettre à jour le prix total du portefeuille
         self.price = self._get_price()
 
     def _get_price(self) -> float:
         """Calcule le prix total du portefeuille"""
-        return sum(product['price'] * product['quantity'] for product in self.products)
+        return sum(product['price'] * product['quantity'] for product in self.structured_products)
     
     def get_portfolio_summary(self) -> Dict:
         """
@@ -107,13 +113,13 @@ class StructuredProductsPortfolio:
             Dict: Un dictionnaire contenant des informations résumées sur le portefeuille
         """
         product_types  = Counter()
-        total_value = sum(product['quantity'] * product['price'] for product in self.products)
+        total_value = sum(product['quantity'] * product['price'] for product in self.structured_products)
 
-        for product in self.products:
+        for product in self.structured_products:
             product_types[product['type']] += product['quantity']
 
         return {
-            'n_products': len(self.products),
+            'n_products': len(self.structured_products),
             'product_types': dict(product_types),
             'total_value': total_value,
             'portfolio_price': self.price
@@ -126,12 +132,12 @@ class StructuredProductsPortfolio:
         Returns:
             pd.DataFrame: Un DataFrame contenant les détails de chaque produit structuré
         """
-        if not self.products:
+        if not self.structured_products:
             print("Aucun produit structuré dans le portefeuille.")
             return pd.DataFrame()
         
         products_data = []
-        for i, product in enumerate(self.products):
+        for i, product in enumerate(self.structured_products):
             # Compter les types de composants
             component_counts = defaultdict(int)
             for comp in product['components']:
@@ -160,10 +166,10 @@ class StructuredProductsPortfolio:
         Returns:
             np.ndarray: Tableau numpy contenant le payoff pour chaque prix du sous-jacent
         """
-        if product_index < 0 or product_index >= len(self.products):
+        if product_index < 0 or product_index >= len(self.structured_products):
             raise ValueError(f"Index de produit invalide: {product_index}")
         
-        product = self.products[product_index]
+        product = self.structured_products[product_index]
         product_type = product['type']
         components = product['components']
         quantity = product['quantity']
@@ -333,10 +339,10 @@ class StructuredProductsPortfolio:
         """
         import plotly.graph_objects as go
         
-        if product_index >= len(self.products):
-            raise ValueError(f"Index de produit invalide: {product_index}, le portefeuille contient {len(self.products)} produits")
+        if product_index >= len(self.structured_products):
+            raise ValueError(f"Index de produit invalide: {product_index}, le portefeuille contient {len(self.structured_products)} produits")
         
-        product = self.products[product_index]
+        product = self.structured_products[product_index]
         product_name = product['name']
         price = product['price']
         
@@ -417,7 +423,7 @@ class StructuredProductsPortfolio:
         """
         import plotly.graph_objects as go
         
-        if not self.products:
+        if not self.structured_products:
             raise ValueError("Le portefeuille est vide")
         
         # Déterminer l'étendue du prix spot (comme avant)
@@ -432,7 +438,7 @@ class StructuredProductsPortfolio:
         # Créer la figure Plotly
         fig = go.Figure()
         
-        for i, product in enumerate(self.products):
+        for i, product in enumerate(self.structured_products):
             payoff = self.compute_payoff(i, spot_prices)
             
             # Soustraire le prix du produit si demandé
@@ -486,4 +492,4 @@ class StructuredProductsPortfolio:
         )
         
         return fig
-    
+

@@ -3,11 +3,11 @@ import datetime as dt
 from dataclasses import dataclass
 from typing import Optional, Tuple
 
-from src.options.Pricing_option.Classes_Both.module_barriere import TypeBarriere, Barriere, DirectionBarriere
-from src.options.Pricing_option.Classes_Both.module_marche import DonneeMarche
-from src.options.Pricing_option.Classes_Both.module_option import Option
-from src.options.Pricing_option.Classes_MonteCarlo_LSM.module_brownian import Brownian
-from src.options.Pricing_option.Classes_MonteCarlo_LSM.module_regression import RegressionEstimator
+from options.Pricing_option.Classes_Both.module_barriere import TypeBarriere, Barriere, DirectionBarriere
+from options.Pricing_option.Classes_Both.module_marche import DonneeMarche
+from options.Pricing_option.Classes_Both.module_option import Option
+from options.Pricing_option.Classes_MonteCarlo_LSM.module_brownian import Brownian
+from options.Pricing_option.Classes_MonteCarlo_LSM.module_regression import RegressionEstimator
 import numpy as np
 import pandas as pd
 
