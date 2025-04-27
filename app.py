@@ -103,11 +103,10 @@ with tab1 :
     
     dividende_check = st.toggle("Dividende", value=False)
 
-    heston_model_check = st.toggle("Modèle de Heston", value=False)
+    model_choice = st.radio("Sélectionnez un modèle", options=["Aucun", "Heston", "Vasicek"], index=0)
+    heston_model_check = model_choice == "Heston"
+    vasicek_model_check = model_choice == "Vasicek sur le taux d'intérêt"
     r_increment = 1 if heston_model_check else 0
-    
-    vasicek_model_check = st.toggle("Modèle de Vasicek", value=False)
-
     col21, col22, col23 = st.columns(3)
 
     with col21 : 
