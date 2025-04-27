@@ -32,7 +32,7 @@ class SemiAnalyticalPricer(PricerBase):
         V0 = self.heston_parameters.v0
         r = self.option.risk_free_rate
         T = self.option.maturity
-        S0 = self.option.spot_price
+        S0 = self.option.prix_spot
         K = self.option.strike
         
         i = complex(0, 1.0)
@@ -77,7 +77,7 @@ class SemiAnalyticalPricer(PricerBase):
         r = self.option.risk_free_rate
         T = self.option.maturity
         K = self.option.strike
-        S0 = self.option.spot_price
+        S0 = self.option.prix_spot
         
         max_phi = 1000
         N = 100000
