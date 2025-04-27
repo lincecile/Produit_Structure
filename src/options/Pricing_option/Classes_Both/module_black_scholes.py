@@ -13,7 +13,7 @@ class BlackAndScholes :
         self.option = modele.option
         self.is_european = not self.option.americaine
         self.type_option = "Call" if self.option.call else "Put"
-        self.prix_sj = modele.donnee_marche.prix_spot
+        self.prix_spot = modele.donnee_marche.prix_spot
         self.strike = self.option.prix_exercice
         self.risk_free = modele.donnee_marche.taux_interet
         self.maturite = modele.get_temps()
@@ -22,15 +22,15 @@ class BlackAndScholes :
         if not self.is_european : 
             raise ValueError("Black and Scholes n'est applicable que dans le cas d'options européennes.")
         
-        self.d1 = (np.log(self.prix_sj/self.strike) + (self.risk_free + 0.5 * (self.volatilite**2))*self.maturite) / (self.volatilite * np.sqrt(self.maturite))
+        self.d1 = (np.log(self.prix_spot/self.strike) + (self.risk_free + 0.5 * (self.volatilite**2))*self.maturite) / (self.volatilite * np.sqrt(self.maturite))
         self.d2 = self.d1 -self.volatilite * np.sqrt(self.maturite)
         
     def bs_pricer(self):
         
         if self.type_option == "Call" : 
-            bsprice = self.prix_sj * norm.cdf(self.d1,0,1) - self.strike * np.exp(-self.risk_free * self.maturite) * norm.cdf(self.d2,0,1)
+            bsprice = self.prix_spot * norm.cdf(self.d1,0,1) - self.strike * np.exp(-self.risk_free * self.maturite) * norm.cdf(self.d2,0,1)
         else : #on considère ici que nous sommes dans le cas du put
-            bsprice = self.strike * np.exp(-self.risk_free * self.maturite) * norm.cdf(-self.d2,0,1) - self.prix_sj * norm.cdf(-self.d1,0,1)
+            bsprice = self.strike * np.exp(-self.risk_free * self.maturite) * norm.cdf(-self.d2,0,1) - self.prix_spot * norm.cdf(-self.d1,0,1)
             
         return bsprice
     
@@ -46,17 +46,17 @@ class BlackAndScholes :
     def theta(self):
         
         if self.type_option == "Call" : 
-            theta = -(self.prix_sj * norm.pdf(self.d1,0,1) * self.volatilite / 2 * np.sqrt(self.maturite)) - self.risk_free * self.strike * np.exp(-self.risk_free * self.maturite) * norm.cdf(self.d2,0,1)
+            theta = -(self.prix_spot * norm.pdf(self.d1,0,1) * self.volatilite / 2 * np.sqrt(self.maturite)) - self.risk_free * self.strike * np.exp(-self.risk_free * self.maturite) * norm.cdf(self.d2,0,1)
         else : 
-            theta = -(self.prix_sj * norm.pdf(self.d1,0,1) * self.volatilite / 2 * np.sqrt(self.maturite)) + self.risk_free * self.strike * np.exp(-self.risk_free * self.maturite) * norm.cdf(-self.d2,0,1)
+            theta = -(self.prix_spot * norm.pdf(self.d1,0,1) * self.volatilite / 2 * np.sqrt(self.maturite)) + self.risk_free * self.strike * np.exp(-self.risk_free * self.maturite) * norm.cdf(-self.d2,0,1)
         
         return theta/100
     
     def gamma(self):
-        return norm.pdf(self.d1,0,1)/self.prix_sj*self.volatilite*np.sqrt(self.maturite)*1000
+        return norm.pdf(self.d1,0,1)/self.prix_spot*self.volatilite*np.sqrt(self.maturite)*1000
     
     def vega(self):
-        return self.prix_sj*np.sqrt(self.maturite)*norm.pdf(self.d1)/100
+        return self.prix_spot*np.sqrt(self.maturite)*norm.pdf(self.d1)/100
     
     def rho(self):
         

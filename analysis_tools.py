@@ -13,22 +13,24 @@ class AnalysisTools:
     
     """
     
-    def __init__(self, option, pricer, params=None):
+    def __init__(self, option, pricer, pricing_function: Callable = None, params=None):
         """
-        Initialisation de l'outil d'analyse
-        
         Args:
-            option: L'option à analyser (doit avoir une structure d'attributs)
-            pricer: Le pricer à utiliser (doit avoir une méthode price())
-            params: Les paramètres du modèle
+            option: l'objet option
+            pricer: l'objet pricer
+            pricing_function: fonction à utiliser pour pricer l'option en fonction d'un modèle (sinon .price() par défaut)
+            params: éventuels paramètres (ex: HestonParameters)
         """
         self.option = option
         self.pricer = pricer
+        self.pricing_function = pricing_function if pricing_function else self.default_price
         self.params = params
-        # Copier l'état initial des objets pour pouvoir les restaurer
         self._initial_option = copy.deepcopy(option)
         self._initial_params = copy.deepcopy(params) if params else None
-    
+
+    def default_price(self):
+        return self.pricer.price()
+
     def _restore_initial_state(self):
         """Restaure l'option et les paramètres à leur état initial"""
         for attr, value in vars(self._initial_option).items():
@@ -55,7 +57,8 @@ class AnalysisTools:
         Returns:
             DataFrame contenant la matrice de P&L
         """
-        initial_price = self.pricer.price()
+        initial_price = self.pricing_function()
+
         
         # Si on varie un seul paramètre
         if y_param_name is None or y_param_values is None:
@@ -63,7 +66,7 @@ class AnalysisTools:
             for x_value in x_param_values:
                 self._set_param_value(x_param_name, x_value)
                 
-                new_price = self.pricer.price()
+                new_price = self.pricing_function()
                 pnl = new_price - initial_price
                 
                 results.append({
@@ -167,7 +170,7 @@ class AnalysisTools:
         results = []
         
         # Prix de référence avec les paramètres actuels
-        base_price = self.pricer.price()
+        base_price = self.pricing_function()
         
         for i, scenario in enumerate(scenario_params):
             for param_name, param_value in scenario.items():
@@ -175,7 +178,7 @@ class AnalysisTools:
             
             try:
                 start_time = time.time()
-                stress_price = self.pricer.price()
+                stress_price = self.pricing_function()
                 calc_time = time.time() - start_time
                 
                 # Calculer le P&L absolu et relatif

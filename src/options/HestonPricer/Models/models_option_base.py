@@ -13,7 +13,7 @@ class OptionBase(ABC):
             risk_free_rate: Risk-free interest rate
             is_call: Boolean indicating if the option is a call option (True) or put option (False)
         """
-        self.spot_price = spot_price
+        self.prix_spot = spot_price
         self.strike = strike
         self.maturity = maturity
         self.risk_free_rate = risk_free_rate

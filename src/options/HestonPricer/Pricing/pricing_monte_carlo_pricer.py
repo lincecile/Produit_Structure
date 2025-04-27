@@ -38,7 +38,7 @@ class MonteCarloPricer(PricerBase):
         np.random.seed(random_seed)
         
         T = self.option.maturity
-        S0 = self.option.spot_price
+        S0 = self.option.prix_spot
         r = self.option.risk_free_rate
         kappa = self.heston_parameters.kappa
         theta = self.heston_parameters.theta

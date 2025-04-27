@@ -51,6 +51,8 @@ from src.Strategies_optionnelles.Strategies_predefinies import OptionsStrategy
 from src.time_utils.maturity import Maturity
 from src.rate import Rate, StochasticRate
 
+from analysis_tools import AnalysisTools 
+
 #%% Constantes
 
 today= dt.date.today()
@@ -78,7 +80,7 @@ st.markdown("""
 ###################### Onglet 1 : Inputs Utilisateur ######################
 ########################################################################### 
 
-tab_option_strat, tab1, tab2, tab3, tab4, tabcomparaison = st.tabs(["Strat Option", "Pricing", "Plus d'options", "Graphique : Brownien et Sous-Jacent", "Greeks", "Analyse - Comparaison"])
+tab_option_strat, tab1, tab2, tab4, tab_risk_metrics, tab3, tabcomparaison = st.tabs(["Strat Option", "Pricing", "Plus d'options",  "Greeks", "Métriques de risques", "Graphique : Brownien et Sous-Jacent", "Analyse - Comparaison"])
 
 
 with tab1 :
@@ -337,6 +339,12 @@ with tab1:
             st.divider()
             st.subheader('Pricing Black and Scholes : ')
             st.metric('', value = pricing_bns)
+
+            st.session_state.option_priced = option
+            st.session_state.pricer_used = bns
+            st.session_state.model_used = "BS"
+
+
         
         if option_exercice == 'Asiatique':
             st.divider()
@@ -356,6 +364,10 @@ with tab1:
             std_error = f"{round(std_error, 4)}€"
             intevalles = f"{round(intevalles[0], 4)}€ - {round(intevalles[1], 4)}€"
             
+            st.session_state.option_priced = option
+            st.session_state.pricer_used = pricer
+            st.session_state.model_used = "LSM"
+
             col11_LSM, col2_LSM, col3_LSM = st.columns(3) 
             with col11_LSM:
                 st.metric('''Valeur de l'option :''', value=prix_option, delta=None)
@@ -375,6 +387,10 @@ with tab1:
             end = time.time()
             time_difference = round(end - start, 1)
             prix_option = f"{round(arbre.prix_option, 2)}€"
+
+            st.session_state.option_priced = option
+            st.session_state.pricer_used = arbre
+            st.session_state.model_used = "Arbre"
             
             # arbre_st = arbre
             
@@ -425,12 +441,14 @@ with tab1:
                 mc_pricer = MonteCarloPricer(heston_option, heston_params, nb_paths=nb_chemin, nb_steps=nb_pas)
                 heston_price = mc_pricer.price(random_seed=seed_choice)
                 
-                # Pour obtenir l'intervalle de confiance
-                # price_info = mc_pricer.price_multiple(10)  # Faire 10 simulations pour obtenir l'intervalle
-                
+
             end = time.time()
             time_difference = round(end - start, 1)
-            
+
+            st.session_state.option_priced = heston_option
+            st.session_state.pricer_used = mc_pricer
+            st.session_state.model_used = "Heston"
+
             prix_option_heston = f"{round(heston_price, 2)}€"
             #std_error_heston = f"{round(price_info[2], 4)}€"
             #intervalle_heston = f"{round(price_info[0] - price_info[1], 4)}€ - {round(price_info[0] + price_info[1], 4)}€"
@@ -439,11 +457,7 @@ with tab1:
             with col11_heston:
                 st.metric('''Valeur de l'option :''', value=prix_option_heston, delta=None)
                 st.metric('Temps de pricing (secondes) :', value=time_difference, delta=None)
-            # with col2_heston:
-            #     st.metric('''Écart type du prix (Heston):''', value=std_error_heston, delta=None)
-            # with col3_heston:
-            #     st.metric('''Intervalle de confiance (95%):''', value=intervalle_heston, delta=None)
-    
+            
     if st.button('Ajouter une option au portfeuille') :
         if 'portfolio' not in st.session_state:
             st.session_state.portfolio = OptionsPortfolio(brownian, donnee_marche)
@@ -629,7 +643,109 @@ with tab4 :
             st.metric(label='Theta',value=bs_theta, delta=None)
         with col25 : 
             st.metric(label='Rho',value=bs_rho, delta=None)
-            
+
+# ###########################################################################
+# ########################### Onglet 5 : Métriques de risques ################
+# ########################################################################### 
+
+with tab_risk_metrics:
+
+    st.subheader("Analyse des risques : matrice de P&L et stress scénarios")
+    
+    if "option_priced" in st.session_state and "model_used" in st.session_state:
+
+        option_selected = st.session_state.option_priced
+        model_used = st.session_state.model_used
+
+        pricer_selection = st.selectbox(
+            "Choisissez le modèle utilisé pour l'analyse de risque :",
+            ("Black-Scholes", "Arbre Trinomial", "LSM", "Heston"),
+            index=["Black-Scholes", "Arbre Trinomial", "LSM", "Heston"].index(model_used)
+        )
+
+        if pricer_selection:
+            # Ici on recrée le bon pricer selon la sélection de l'utilisateur
+            if pricer_selection == "Black-Scholes":
+                selected_pricer = BlackAndScholes(modele=arbre)
+                analyzer = AnalysisTools(option_selected, selected_pricer, pricing_function=selected_pricer.bs_pricer)
+
+            elif pricer_selection == "Arbre Trinomial":
+                selected_pricer = arbre
+                analyzer = AnalysisTools(option_selected, selected_pricer, pricing_function=selected_pricer.pricer_arbre)
+
+            elif pricer_selection == "LSM":
+                selected_pricer = LSM_method(option_selected)
+                analyzer = AnalysisTools(
+                    option_selected,
+                    selected_pricer,
+                    pricing_function=lambda: selected_pricer.LSM(
+                        brownian,
+                        donnee_marche_LSM,
+                        method='vector',
+                        antithetic=False,
+                        poly_degree=2,
+                        model_type='Polynomial'
+                    )
+                )
+
+            elif pricer_selection == "Heston":
+                selected_pricer = MonteCarloPricer(
+                    option_selected, 
+                    heston_params, 
+                    nb_paths=nb_chemin, 
+                    nb_steps=nb_pas
+                )
+                analyzer = AnalysisTools(option_selected, selected_pricer, pricing_function=selected_pricer.price)
+
+            else:
+                st.error("Le modèle sélectionné n'est pas disponible.")
+                selected_pricer = None
+                analyzer = None
+
+            if analyzer is not None:
+                st.success("Analyse possible. Calcul en cours...")
+                
+                with st.spinner("Calcul de la matrice de PnL..."):
+                    spot_range = np.linspace(spot * 0.9, spot * 1.1, 5)  # Exemple : +/- 10% du spot actuel
+
+                    pnl_matrix = analyzer.compute_pnl_matrix(
+                        x_param_name='prix_spot',   # Corrigé ici
+                        x_param_values=spot_range
+                    )
+
+                st.subheader("Matrice de P&L :")
+                st.dataframe(pnl_matrix.round(4))
+                st.pyplot(analyzer.plot_pnl_matrix(pnl_matrix, title="Matrice de P&L"))
+
+                st.divider()
+                
+                # st.subheader("Scénarios de stress :")
+                
+                # crisis_scenarios = [
+                #     {'spot_price': spot, 'v0': volatite**2, 'rho': -0.7},
+                #     {'spot_price': spot * 0.7, 'v0': 0.25, 'rho': -0.9},
+                #     {'spot_price': spot * 0.65, 'v0': 0.35, 'rho': -0.85},
+                #     {'spot_price': spot * 0.8, 'v0': 0.2, 'rho': -0.75},
+                #     {'spot_price': spot * 0.9, 'v0': 0.15, 'risk_free_rate': 0.08, 'rho': -0.6},
+                # ]
+
+                # scenario_names = [
+                #     "Conditions normales",
+                #     "Crise 2008",
+                #     "COVID-19",
+                #     "Bulle Internet",
+                #     "Hausse des taux 2022"
+                # ]
+
+                # with st.spinner("Calcul des scénarios de stress..."):
+                #     stress_results = analyzer.stress_test(crisis_scenarios, scenario_names)
+                
+                # st.dataframe(stress_results)
+                # st.pyplot(analyzer.plot_stress_results(stress_results))
+    
+    else:
+        st.warning("Veuillez d'abord lancer le pricing avant d'accéder aux métriques de risques.")
+
         
 # ###########################################################################
 # ####################### Onglet 4 : Comparaison ############################
