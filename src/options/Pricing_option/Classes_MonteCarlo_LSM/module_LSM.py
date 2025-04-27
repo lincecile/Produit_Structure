@@ -114,7 +114,6 @@ class LSM_method :
         """
         
         if self.option.barriere.direction_barriere is None:
-            print('Pas de barrière')
             return np.ones(Spot_simule.shape[0], dtype=bool)
         
         print('Barrière présente')
