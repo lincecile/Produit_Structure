@@ -233,7 +233,6 @@ with tab1 :
         niveau_barriere=0
         type_barriere=None
         direction_barriere=None
-        print("Pas de barrière")
     
     # Stratégies
     
@@ -800,7 +799,7 @@ with tab_risk_metrics:
 
     if "pricings" in st.session_state and st.session_state.pricings:
 
-        available_models = list(st.session_state.pricings.keys())
+        available_models = list(st.session_state.pricings.keys())[::-1]
 
         selected_model = st.selectbox(
             "Choisissez le modèle utilisé pour l'analyse de risque :",
