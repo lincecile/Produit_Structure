@@ -51,3 +51,9 @@ class RegType(Enum) :
     logarithmic = "Logarithmic"
     exponential = "Exponential"
             
+
+class ModelMetrics(Enum):
+    bs = "Black-Scholes"
+    arbre = "Arbre Trinomial"
+    lsm = "LSM"
+    heston = "Heston"
