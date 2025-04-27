@@ -36,6 +36,7 @@ class StratStructured(Enum) :
     capitalprotectednote = "Capital protected note"
     reverseconvertible = "Reverse convertible"
     barrierdigit = "Barrier digital"
+    autocallathena = "Autocall Athena"
 
 class MethodeCalcul(Enum) : 
     vector = "Vectorielle"
