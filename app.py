@@ -121,18 +121,6 @@ with tab1 :
     if not vasicek_model_check:
         with col23:
             risk_free_rate = st.number_input("Entrez le niveau de taux d'intérêt (en %):", format="%.2f", value=4.0, step=1.00)/100
-    else:
-        st.success("Taux d'intérêt stochastique")
-        st_rate = st.number_input("Entrez le niveau de taux d'intérêt de court terme (en %):", format="%.2f", value=3.0, step=1.00)/100
-        lt_rate = st.number_input("Entrez le niveau de taux d'intérêt à long terme (en %):", format="%.2f", value=4.0, step=1.00)/100
-        
-        dates_sto = {
-            Maturity(date_pricing, date_maturite): st_rate,
-            Maturity(date_pricing, date_maturite + timedelta(days=365 * 10)): lt_rate # considérons que le LT c'est 10 ans
-        }
-        
-        stochastic_rate = StochasticRate(rate_curve=dates_sto, num_paths=nb_pas+r_increment)
-        risk_free_rate = stochastic_rate.get_curve()
 
     if dividende_check : 
         with col21 : 
@@ -144,6 +132,26 @@ with tab1 :
         dividende_montant=0
 
     if heston_model_check:
+        st.success("Volatilité stochastique")
+        
+    if vasicek_model_check:
+        st.success("Taux d'intérêt stochastique")
+        st.divider()
+        st.subheader("Paramètres du modèle de Vasicek:")
+
+        st_rate = st.number_input("Entrez le niveau de taux d'intérêt de court terme (en %):", format="%.2f", value=3.0, step=1.00)/100
+        lt_rate = st.number_input("Entrez le niveau de taux d'intérêt à long terme (en %):", format="%.2f", value=4.0, step=1.00)/100
+        
+        dates_sto = {
+            Maturity(date_pricing, date_maturite): st_rate,
+            Maturity(date_pricing, date_maturite + timedelta(days=365 * 10)): lt_rate # considérons que le LT c'est 10 ans
+        }
+        
+        stochastic_rate = StochasticRate(rate_curve=dates_sto, num_paths=nb_pas+r_increment)
+        risk_free_rate = stochastic_rate.get_curve()
+
+    if heston_model_check:
+        
         st.divider()
         st.subheader("Paramètres du modèle de Heston:")
         
@@ -172,7 +180,7 @@ with tab1 :
         # date_maturite = st.date_input("Entrez une date de maturité :",value=date)
         
     with col32:
-        barriere_check = st.checkbox("Option à barrière ? (uniquement arbre trinomial)", value=False)
+        barriere_check = st.checkbox("Option à barrière ?", value=False)
         
     col41, col42, col43 = st.columns(3)
         
