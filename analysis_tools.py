@@ -213,3 +213,25 @@ class AnalysisTools:
         ]
         
         return df
+    def plot_stress_results(self, stress_results: pd.DataFrame) -> None:
+        """
+        Affiche un graphique en barres des résultats de stress test.
+
+        Args:
+            stress_results: DataFrame retourné par la méthode stress_test
+        """
+        plt.figure(figsize=(12, 6))
+        
+        if 'Scenario' not in stress_results.columns or 'P&L (%)' not in stress_results.columns:
+            raise ValueError("Le DataFrame de résultats doit contenir les colonnes 'Scenario' et 'P&L (%)'")
+        
+        plt.bar(stress_results['Scenario'], stress_results['P&L (%)'], color='skyblue', edgecolor='black')
+        plt.axhline(y=0, color='red', linestyle='--', linewidth=1)
+        
+        plt.xlabel('Scénarios')
+        plt.ylabel('P&L Relatif (%)')
+        plt.title('Impact des scénarios de stress sur le P&L')
+        plt.xticks(rotation=45, ha='right')
+        plt.grid(axis='y', linestyle='--', alpha=0.7)
+        plt.tight_layout()
+        return plt.gcf()
