@@ -237,7 +237,7 @@ with tab1 :
             params["strike1"] = st.number_input("Entrez le strike de la première option :", 0.0, format="%.2f", value=95.0, step=0.01)
             params["strike2"] = st.number_input("Entrez le strike de la seconde option :", 0.0, format="%.2f", value=105.0, step=0.01)
         
-        if option_type_strat in ["Straddle", "Long Call", "Short Call", "Long Put", "Short Put"]:
+        if option_type_strat in ["Straddle", "Long Call", "Short Call", "Long Put", "Short Put", 'Forward']:
             params["strike"] = st.number_input("Entrez le strike des options :", 0.0, format="%.2f", value=100.0, step=0.01)
         
         if option_type_strat in ["Butterfly"]:
