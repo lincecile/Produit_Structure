@@ -809,6 +809,16 @@ with tabs_portfolio[1]:
             )
             st.success(f"Barrier Digital ajouté au portefeuille!")
 
+        elif stru_type_strat == "Autocall Athena":
+            st.session_state.portfolio_stru.add_structured_product(
+                product_name="Athena Autocall",
+                product_type="athena_autocall",
+                components=athena_components,
+                price=payout,
+                quantity=params_stru["quantity"] if sens_stru == 'Long' else -params_stru["quantity"]
+            )
+            st.success(f"Autocall Athena ajouté au portefeuille!")
+
     # Display portfolio content
     try:
         if 'portfolio_stru' in st.session_state and hasattr(st.session_state.portfolio_stru, 'structured_products') and len(st.session_state.portfolio_stru.structured_products) > 0:
