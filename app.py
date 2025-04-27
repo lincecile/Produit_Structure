@@ -87,7 +87,6 @@ tab1, tab2, tab4, tab_risk_metrics, tab3, tabcomparaison = st.tabs(["Pricing", "
 
 with tab1 :
     
-    activer_pricing = st.button('Pricing')
 
     col11, col12, col13 = st.columns(3)
     
@@ -179,7 +178,13 @@ with tab1 :
     
     st.header("Option :")
     
-    ajouter_option=st.button('Ajouter une option au portefeuille')
+    col_opt_button = st.columns(4)
+    with col_opt_button[0]:
+        ajouter_option=st.button('Ajouter une option au portefeuille')
+    with col_opt_button[3]:
+        activer_pricing = st.button('Pricing', use_container_width=True)
+    
+    col_opt_pricing = st.columns(1)
     
     st.subheader("Caractéristique de l'option :")
     
@@ -364,150 +369,157 @@ with tab2 :
 brownian = Brownian(time_to_maturity=(date_maturite-date_pricing).days / convention_base_calendaire, nb_step=nb_pas, nb_trajectoire=nb_chemin, seed=seed_choice)
 pricer = LSM_method(option)
 
+with col_opt_pricing[0]:
+    
+    
+    if activer_pricing :
+        with st.popover('Résultats du pricing', use_container_width=True, icon="⚡"):
+            if "pricings" not in st.session_state:
+                st.session_state.pricings = {}
+
+            if  bs_check : 
+                # @st.cache_data
+                # def bns_return(_arbre : Arbre) -> BlackAndScholes:
+                #     bns = BlackAndScholes(modele=_arbre)
+                #     pricing_bns = f"{round(bns.bs_pricer(),2)}€"
+                #     return pricing_bns
+                
+                bns = BlackAndScholes(modele=arbre)
+                pricing_bns = f"{round(bns.bs_pricer(),2)}€"
+                st.divider()
+                st.subheader('Pricing Black and Scholes : ')
+                st.metric('', value = pricing_bns)
+
+                #st.session_state.pricer_used = st.session_state.pricer_used + [bns]
+                #st.session_state.model_used = st.session_state.model_used + ["Black-Scholes"]
+
+                st.session_state.pricings["BS"] = {
+                    "option": option,
+                    "pricer": bns,
+                    "market_data": donnee_marche
+                }
+
+            if option_exercice == 'Asiatique':
+                st.divider()
+                st.error("Le modèle de l'arbre trinomial et LSM ne supportent pas les options asiatiques.")
+            else:
+                st.divider()
+                st.subheader('Pricing LSM : ')
+                start = time.time()
+                with st.spinner('''Valorisation de l'option en cours...''') : 
+                    price, std_error, intevalles = pricer.LSM(brownian, donnee_marche_LSM, 
+                                                            method= 'vector' if calcul_method == 'Vectorielle' else 'scalar', 
+                                                            antithetic = antithetic_choice,
+                                                            poly_degree=poly_degree, model_type=regress_method)
+                end = time.time()
+                time_difference = round(end - start, 1)
+                prix_option = f"{round(price, 2)}€"
+                std_error = f"{round(std_error, 4)}€"
+                intevalles = f"{round(intevalles[0], 4)}€ - {round(intevalles[1], 4)}€"
+
+                #st.session_state.pricer_used = st.session_state.pricer_used + [pricer]
+                #st.session_state.model_used = st.session_state.model_used + ["LSM"]
+                st.session_state.pricings["LSM"] = {
+                    "option": option,
+                    "pricer": pricer,
+                    "market_data": donnee_marche_LSM
+                }
+
+                col11_LSM, col2_LSM, col3_LSM = st.columns(3) 
+                with col11_LSM:
+                    st.metric('''Valeur de l'option :''', value=prix_option, delta=None)
+                    st.metric('Temps de pricing (secondes) :', value=time_difference, delta=None)
+                with col2_LSM:
+                    st.metric('''Ecart type du prix de l'option :''', value=std_error, delta=None)
+                with col3_LSM:
+                    st.metric('''Intervalle de confiance :''', value=intevalles, delta=None)
+
+            if not vasicek_model_check:
+                st.divider()
+                st.subheader('Pricing avec Arbre : ')
+
+                start = time.time()
+                with st.spinner('''Valorisation de l'option en cours...''') : 
+                    arbre.pricer_arbre()
+                end = time.time()
+                time_difference = round(end - start, 1)
+                prix_option = f"{round(arbre.prix_option, 2)}€"
+
+                #st.session_state.pricer_used = st.session_state.pricer_used + [arbre]
+                #st.session_state.model_used = st.session_state.model_used + ["Arbre Trinomial"]
+                st.session_state.pricings["Arbre Trinomial"] = {
+                    "option": option,
+                    "pricer": arbre,
+                    "market_data": donnee_marche
+                }
+                # arbre_st = arbre
+                
+                st.metric('''Valeur de l'option :''', value=prix_option, delta=None)
+                st.metric('Temps de pricing (secondes) :', value=time_difference, delta=None)
+                start = time.time()
+                with st.spinner('''Valorisation de l'option en cours...''') : 
+                    arbre.pricer_arbre()
+                end = time.time()
+                time_difference = round(end - start, 1)
+                prix_option = f"{round(arbre.prix_option, 2)}€"
+                
+                # arbre_st = arbre
+                
+                st.metric('''Valeur de l'option :''', value=prix_option, delta=None)
+                st.metric('Temps de pricing (secondes) :', value=time_difference, delta=None)
+
+            if heston_model_check:
+                st.divider()
+                st.subheader('Pricing avec le modèle de Heston : ')
+                
+                # Créer les objets pour le pricing Heston
+                heston_params = HestonParameters(kappa, theta, v0, sigma, rho)
+                
+                if option_exercice in ['Européenne','Asiatique']:
+                    option = EuropeanOption(
+                        spot_price=spot,
+                        strike=strike, 
+                        maturity=(date_maturite-date_pricing).days / convention_base_calendaire,
+                        risk_free_rate=risk_free_rate,
+                        is_call=True if option_type == "Call" else False
+                    )
+                else:
+                    st.error("Le modèle de Heston ne supporte pas les options américaines.")
+                    option = None
+                
+                start = time.time()
+                with st.spinner('Valorisation avec le modèle de Heston en cours...'):
+                    # Pricing Monte Carlo avec Heston
+                    mc_pricer = MonteCarloPricer(option, heston_params, nb_paths=nb_chemin, nb_steps=nb_pas)
+                    heston_price = mc_pricer.price(random_seed=seed_choice)
+                    
+
+                end = time.time()
+                time_difference = round(end - start, 1)
+
+                #st.session_state.pricer_used = st.session_state.pricer_used + [mc_pricer]
+                #st.session_state.model_used = st.session_state.model_used + ["Heston"]
+                st.session_state.pricings["Heston"] = {
+                    "option": option,
+                    "pricer": mc_pricer,
+                    "market_data": donnee_marche
+                }
+
+                prix_option_heston = f"{round(heston_price, 2)}€"
+
+                col11_heston, col2_heston, col3_heston = st.columns(3)
+                with col11_heston:
+                    st.metric('''Valeur de l'option :''', value=prix_option_heston, delta=None)
+                    st.metric('Temps de pricing (secondes) :', value=time_difference, delta=None)
+                
+
+    
+
 with tab1:
 
     #st.session_state.option_priced = option
     #st.session_state.model_used = []
 
-    if activer_pricing :
-        if "pricings" not in st.session_state:
-            st.session_state.pricings = {}
-
-        if  bs_check : 
-            # @st.cache_data
-            # def bns_return(_arbre : Arbre) -> BlackAndScholes:
-            #     bns = BlackAndScholes(modele=_arbre)
-            #     pricing_bns = f"{round(bns.bs_pricer(),2)}€"
-            #     return pricing_bns
-            
-            bns = BlackAndScholes(modele=arbre)
-            pricing_bns = f"{round(bns.bs_pricer(),2)}€"
-            st.divider()
-            st.subheader('Pricing Black and Scholes : ')
-            st.metric('', value = pricing_bns)
-
-            #st.session_state.pricer_used = st.session_state.pricer_used + [bns]
-            #st.session_state.model_used = st.session_state.model_used + ["Black-Scholes"]
-
-            st.session_state.pricings["BS"] = {
-                "option": option,
-                "pricer": bns,
-                "market_data": donnee_marche
-            }
-
-        if option_exercice == 'Asiatique':
-            st.divider()
-            st.error("Le modèle de l'arbre trinomial et LSM ne supportent pas les options asiatiques.")
-        else:
-            st.divider()
-            st.subheader('Pricing LSM : ')
-            start = time.time()
-            with st.spinner('''Valorisation de l'option en cours...''') : 
-                price, std_error, intevalles = pricer.LSM(brownian, donnee_marche_LSM, 
-                                                        method= 'vector' if calcul_method == 'Vectorielle' else 'scalar', 
-                                                        antithetic = antithetic_choice,
-                                                        poly_degree=poly_degree, model_type=regress_method)
-            end = time.time()
-            time_difference = round(end - start, 1)
-            prix_option = f"{round(price, 2)}€"
-            std_error = f"{round(std_error, 4)}€"
-            intevalles = f"{round(intevalles[0], 4)}€ - {round(intevalles[1], 4)}€"
-
-            #st.session_state.pricer_used = st.session_state.pricer_used + [pricer]
-            #st.session_state.model_used = st.session_state.model_used + ["LSM"]
-            st.session_state.pricings["LSM"] = {
-                "option": option,
-                "pricer": pricer,
-                "market_data": donnee_marche_LSM
-            }
-
-            col11_LSM, col2_LSM, col3_LSM = st.columns(3) 
-            with col11_LSM:
-                st.metric('''Valeur de l'option :''', value=prix_option, delta=None)
-                st.metric('Temps de pricing (secondes) :', value=time_difference, delta=None)
-            with col2_LSM:
-                st.metric('''Ecart type du prix de l'option :''', value=std_error, delta=None)
-            with col3_LSM:
-                st.metric('''Intervalle de confiance :''', value=intevalles, delta=None)
-
-        if not vasicek_model_check:
-            st.divider()
-            st.subheader('Pricing avec Arbre : ')
-
-            start = time.time()
-            with st.spinner('''Valorisation de l'option en cours...''') : 
-                arbre.pricer_arbre()
-            end = time.time()
-            time_difference = round(end - start, 1)
-            prix_option = f"{round(arbre.prix_option, 2)}€"
-
-            #st.session_state.pricer_used = st.session_state.pricer_used + [arbre]
-            #st.session_state.model_used = st.session_state.model_used + ["Arbre Trinomial"]
-            st.session_state.pricings["Arbre Trinomial"] = {
-                "option": option,
-                "pricer": arbre,
-                "market_data": donnee_marche
-            }
-            # arbre_st = arbre
-            
-            st.metric('''Valeur de l'option :''', value=prix_option, delta=None)
-            st.metric('Temps de pricing (secondes) :', value=time_difference, delta=None)
-            start = time.time()
-            with st.spinner('''Valorisation de l'option en cours...''') : 
-                arbre.pricer_arbre()
-            end = time.time()
-            time_difference = round(end - start, 1)
-            prix_option = f"{round(arbre.prix_option, 2)}€"
-            
-            # arbre_st = arbre
-            
-            st.metric('''Valeur de l'option :''', value=prix_option, delta=None)
-            st.metric('Temps de pricing (secondes) :', value=time_difference, delta=None)
-
-        if heston_model_check:
-            st.divider()
-            st.subheader('Pricing avec le modèle de Heston : ')
-            
-            # Créer les objets pour le pricing Heston
-            heston_params = HestonParameters(kappa, theta, v0, sigma, rho)
-            
-            if option_exercice in ['Européenne','Asiatique']:
-                option = EuropeanOption(
-                    spot_price=spot,
-                    strike=strike, 
-                    maturity=(date_maturite-date_pricing).days / convention_base_calendaire,
-                    risk_free_rate=risk_free_rate,
-                    is_call=True if option_type == "Call" else False
-                )
-            else:
-                st.error("Le modèle de Heston ne supporte pas les options américaines.")
-                option = None
-            
-            start = time.time()
-            with st.spinner('Valorisation avec le modèle de Heston en cours...'):
-                # Pricing Monte Carlo avec Heston
-                mc_pricer = MonteCarloPricer(option, heston_params, nb_paths=nb_chemin, nb_steps=nb_pas)
-                heston_price = mc_pricer.price(random_seed=seed_choice)
-                
-
-            end = time.time()
-            time_difference = round(end - start, 1)
-
-            #st.session_state.pricer_used = st.session_state.pricer_used + [mc_pricer]
-            #st.session_state.model_used = st.session_state.model_used + ["Heston"]
-            st.session_state.pricings["Heston"] = {
-                "option": option,
-                "pricer": mc_pricer,
-                "market_data": donnee_marche
-            }
-
-            prix_option_heston = f"{round(heston_price, 2)}€"
-
-            col11_heston, col2_heston, col3_heston = st.columns(3)
-            with col11_heston:
-                st.metric('''Valeur de l'option :''', value=prix_option_heston, delta=None)
-                st.metric('Temps de pricing (secondes) :', value=time_difference, delta=None)
-            
     if ajouter_option :
         if 'portfolio' not in st.session_state:
             st.session_state.portfolio = OptionsPortfolio("", brownian, donnee_marche)
@@ -533,6 +545,7 @@ with tab1:
         strategy.create_strategy(option_type_strat, params, 1 if sens_option == 'Long' else -1)  
         st.success(f"Stratégie {option_type_strat} créée avec succès !")
     
+    
     try : 
         detail_folio = st.session_state.portfolio.get_portfolio_detail()
         if len(detail_folio) != 0:
@@ -543,120 +556,117 @@ with tab1:
         st.markdown("Aucune produit dans le portefeuille")
 
 
-    try:
+    try :
         len_option_check = len(st.session_state.portfolio.options) > 1 
-    except:
-        pass
+        if len(st.session_state.portfolio.options) == 1 :
+            st.divider()
+            st.subheader("Détail portefeuille :")
 
-    if len(st.session_state.portfolio.options) == 1 :
-        st.divider()
-        st.subheader("Détail portefeuille :")
+            col_ptf = st.columns(3)
+            with col_ptf[0]:
+                recap_button = st.button('Récap du portefeuille', use_container_width=True)
+            with col_ptf[1]:
+                greeks_button = st.button('Grecques du portefeuille', use_container_width=True)
+            with col_ptf[2]:
+                remove_single_option_button = st.button("Supprimer l'option", use_container_width=True)
+                
+            if recap_button :
+                if 'portfolio' not in st.session_state:
+                    st.error("Le portefeuille est vide")
+                else:
+                    summary_folio = st.session_state.portfolio.get_portfolio_summary()
+                    st.dataframe(summary_folio)
 
-        col_ptf = st.columns(3)
-        with col_ptf[0]:
-            recap_button = st.button('Récap du portefeuille', use_container_width=True)
-        with col_ptf[1]:
-            greeks_button = st.button('Grecques du portefeuille', use_container_width=True)
-        with col_ptf[2]:
-            remove_single_option_button = st.button("Supprimer l'option", use_container_width=True)
-            
-        if recap_button :
-            if 'portfolio' not in st.session_state:
-                st.error("Le portefeuille est vide")
-            else:
-                summary_folio = st.session_state.portfolio.get_portfolio_summary()
-                st.dataframe(summary_folio)
+            if greeks_button :
 
-        if greeks_button :
-
-            if 'portfolio' not in st.session_state:
-                st.error("Le portefeuille est vide")
-            else:
-                greeks_folio = st.session_state.portfolio.calculate_portfolio_greeks()
-                st.dataframe(greeks_folio)
-            
-        if remove_single_option_button:
-            if 'portfolio' in st.session_state and st.session_state.portfolio.options:
-                st.session_state.portfolio.remove_option_quantity(0,params["quantity"])
-                st.success("Supprimé")
-                st.rerun()
-            else:
-                st.error("Le portefeuille est vide")
-
-    if len_option_check:
-        st.divider()
-        st.subheader("Détail portefeuille :")
-
-        col_ptf = st.columns(2)
-        with col_ptf[0]:
-            recap_button = st.button('Récap du portefeuille', use_container_width=True)
-        with col_ptf[1]:
-            greeks_button = st.button('Grecques du portefeuille', use_container_width=True)
-
-
-        st.divider()
-        
-        st.subheader("Suppression :")
-
-        col_ptf_del_buttons = st.columns(4)
-        
-        with col_ptf_del_buttons[0]:     
-            indice = st.number_input("Indice de l'option à supprimer:",0, value=1, step=1)
-        with col_ptf_del_buttons[1]:
-            if len_option_check:
-                params["quantity_delete"] = st.number_input("Quantité à supprimer:", 0, value=2, step=1)
-            else :
-                params["quantity_delete"] = 1
-
-        col_ptf_del = st.columns(2)
-        if len_option_check:
-            with col_ptf_del[0]:
-                remove_option_button = st.button("Supprimer une option par son indice", use_container_width=True)
-        with col_ptf_del[0]:
-            remove_button = st.button(f"Supprimer cette quantité d'option de l'indice {indice}", use_container_width=True)
-
-        with col_ptf_del[1]:
-            clear_button = st.button("Vider le portefeuille", use_container_width=True)
-            
-        # Bouton pour supprimer une option du portefeuille
-        if remove_button:
-            if 'portfolio' in st.session_state:
-                st.session_state.portfolio.remove_option_quantity(indice,params["quantity_delete"])
-                st.success("Supprimé")
-                st.rerun()
-
-                # Bouton pour vider le portefeuille
-        if clear_button:
-            if 'portfolio' in st.session_state:
-                st.session_state.portfolio.clear_portfolio()
-                st.rerun()
-            
-
-        # Pour afficher le payoff d'une option spécifique
-        if len_option_check:
-            if remove_option_button:
+                if 'portfolio' not in st.session_state:
+                    st.error("Le portefeuille est vide")
+                else:
+                    greeks_folio = st.session_state.portfolio.calculate_portfolio_greeks()
+                    st.dataframe(greeks_folio)
+                
+            if remove_single_option_button:
                 if 'portfolio' in st.session_state and st.session_state.portfolio.options:
-                    st.session_state.portfolio.remove_option_quantity(indice,params["quantity"])
+                    st.session_state.portfolio.remove_option_quantity(0,params["quantity"])
                     st.success("Supprimé")
                 else:
                     st.error("Le portefeuille est vide")
 
-        if recap_button :
+        if len_option_check:
+            st.divider()
+            st.subheader("Détail portefeuille :")
 
-            if 'portfolio' not in st.session_state:
-                st.error("Le portefeuille est vide")
-            else:
-                summary_folio = st.session_state.portfolio.get_portfolio_summary()
-                st.dataframe(summary_folio)
+            col_ptf = st.columns(2)
+            with col_ptf[0]:
+                recap_button = st.button('Récap du portefeuille', use_container_width=True)
+            with col_ptf[1]:
+                greeks_button = st.button('Grecques du portefeuille', use_container_width=True)
 
-        if greeks_button :
 
-            if 'portfolio' not in st.session_state:
-                st.error("Le portefeuille est vide")
-            else:
-                greeks_folio = st.session_state.portfolio.calculate_portfolio_greeks()
-                st.dataframe(greeks_folio)
-    
+            st.divider()
+            
+            st.subheader("Suppression :")
+
+            col_ptf_del_buttons = st.columns(4)
+            
+            with col_ptf_del_buttons[0]:     
+                indice = st.number_input("Indice de l'option à supprimer:",0, value=1, step=1)
+            with col_ptf_del_buttons[1]:
+                if len_option_check:
+                    params["quantity_delete"] = st.number_input("Quantité à supprimer:", 0, value=2, step=1)
+                else :
+                    params["quantity_delete"] = 1
+
+            col_ptf_del = st.columns(2)
+            if len_option_check:
+                with col_ptf_del[0]:
+                    remove_option_button = st.button("Supprimer une option par son indice", use_container_width=True)
+            with col_ptf_del[0]:
+                remove_button = st.button(f"Supprimer cette quantité d'option de l'indice {indice}", use_container_width=True)
+
+            with col_ptf_del[1]:
+                clear_button = st.button("Vider le portefeuille", use_container_width=True)
+                
+            # Bouton pour supprimer une option du portefeuille
+            if remove_button:
+                if 'portfolio' in st.session_state:
+                    st.session_state.portfolio.remove_option_quantity(indice,params["quantity_delete"])
+                    st.success("Supprimé")
+                    st.rerun()
+
+                    # Bouton pour vider le portefeuille
+            if clear_button:
+                if 'portfolio' in st.session_state:
+                    st.session_state.portfolio.clear_portfolio()
+                    st.rerun()
+                
+
+            # Pour afficher le payoff d'une option spécifique
+            if len_option_check:
+                if remove_option_button:
+                    if 'portfolio' in st.session_state and st.session_state.portfolio.options:
+                        st.session_state.portfolio.remove_option_quantity(indice,params["quantity"])
+                        st.success("Supprimé")
+                    else:
+                        st.error("Le portefeuille est vide")
+
+            if recap_button :
+
+                if 'portfolio' not in st.session_state:
+                    st.error("Le portefeuille est vide")
+                else:
+                    summary_folio = st.session_state.portfolio.get_portfolio_summary()
+                    st.dataframe(summary_folio)
+
+            if greeks_button :
+
+                if 'portfolio' not in st.session_state:
+                    st.error("Le portefeuille est vide")
+                else:
+                    greeks_folio = st.session_state.portfolio.calculate_portfolio_greeks()
+                    st.dataframe(greeks_folio)
+    except:
+        pass
 
 
 
