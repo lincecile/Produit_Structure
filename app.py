@@ -803,8 +803,6 @@ with tabs_portfolio[1]:
             col_ptf = st.columns(3)
             with col_ptf[0]:
                 recap_button = st.button('Récap du portefeuille structuré', use_container_width=True, key="recap_stru")
-            with col_ptf[1]:
-                view_product_button = st.button('Voir un produit spécifique', use_container_width=True)
             with col_ptf[2]:
                 clear_button = st.button("Vider le portefeuille structuré", use_container_width=True, key="clear_stru")
             
@@ -844,16 +842,7 @@ with tabs_portfolio[1]:
             if recap_button:
                 summary = st.session_state.portfolio_stru.get_portfolio_summary()
                 st.json(summary)
-                
-            if view_product_button:
-                product_index = st.selectbox(
-                    "Sélectionnez un produit à visualiser:",
-                    range(len(st.session_state.portfolio_stru.structured_products)),
-                    format_func=lambda i: f"{i}: {st.session_state.portfolio_stru.structured_products[i]['product_name']}"
-                )
-                if st.button("Afficher le payoff"):
-                    product_fig = st.session_state.portfolio_stru.plot_product_payoff(product_index, show_premium=True)
-                    st.plotly_chart(product_fig, use_container_width=True)
+
         else:
             st.markdown("Aucun produit structuré dans le portefeuille")
     except Exception as e:
