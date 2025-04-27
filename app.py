@@ -52,6 +52,9 @@ from src.Strategies_optionnelles.StructuredStrat import StructuredProductsStrate
 
 from src.time_utils.maturity import Maturity
 from src.rate import Rate, StochasticRate
+from src.bonds import ZCBond
+from src.rate import Rate
+
 
 from analysis_tools import AnalysisTools 
 
@@ -277,13 +280,91 @@ with tab1 :
     ajouter_produit=st.button('Ajouter un produit structuré au portefeuille')
     
     col4121, col4221, col4321 = st.columns(3)
-    
+
     with col4121:
         sens_stru = st.selectbox("Choisissez le sens du produit structuré:", [sens.value for sens in SensOption])
         params_stru = {}
 
     with col4221:
-        stru_type_strat = st.selectbox("Choisissez un produit structuré :", [strat.value for strat in StratStructured])        
+        stru_type_strat = st.selectbox("Choisissez un produit structuré :", [strat.value for strat in StratStructured]) 
+         
+        # Partie produit structuré
+        maturity = Maturity(
+                start_date=dt.date.today(),
+                end_date=date_maturite,
+                day_count="ACT/365"
+            )
+
+        if stru_type_strat in ["Capital protected note"]:
+
+            params_stru["Valeur_faciale_note"] = st.number_input("Entrez la valeur faciale de l'obligation ZC :", 0.0, format="%.2f", value=90.0, step=0.01)
+            params_stru["rateZC_note"] = st.number_input("Entrez le taux facial du ZC :", 0.0, format="%.2f", value=0.05, step=0.01)
+            params_stru["strike_note"] = st.number_input("Entrez le strike du call option :", 0.0, format="%.2f", value=100.0, step=0.01)
+
+            rate = Rate(params_stru["rateZC_note"])
+
+            call_option = Option(
+                prix_exercice=params_stru["strike_note"],
+                maturite=date_maturite,
+                call=True
+            )            
+
+            cpn_components = [
+                {'type': 'zero_coupon_bond', 'object': ZCBond(name="ZCBond", face_value=params_stru["Valeur_faciale_note"], maturity=maturity, rate=rate)},
+                {'type': 'participation_call', 'object': call_option, 'quantity': 0.5}
+            ]
+        
+        if stru_type_strat in ["Reverse convertible"]:
+            
+            params_stru["Valeur_faciale_rc"] = st.number_input("Entrez la valeur faciale de l'obligation ZC :", 0.0, format="%.2f", value=90.0, step=0.01)
+            params_stru["rateZC_rc"] = st.number_input("Entrez le taux facial du ZC :", 0.0, format="%.2f", value=0.05, step=0.01)
+            params_stru["barriere_rc"] = st.number_input("Entrez le strike de la barrière down & in :", 0.0, format="%.2f", value=85.0, step=0.01)
+            params_stru["strike_rc"] = st.number_input("Entrez le strike du put :", 0.0, format="%.2f", value=100.0, step=0.01)
+
+            rate = Rate(params_stru["rateZC_rc"])
+            barrier = Barriere(
+                niveau_barriere=params_stru["barriere_rc"],
+                type_barriere=TypeBarriere.knock_in,
+                direction_barriere=DirectionBarriere.down
+            )
+
+            put_option = Option(
+                prix_exercice=params_stru["strike_rc"],
+                maturite=date_maturite,
+                call=False,
+                barriere=barrier
+            )
+
+            rc_components = [
+                {'type': 'zero_coupon_bond', 'object': ZCBond(name="ZCBond", face_value=params_stru["Valeur_faciale_rc"], maturity=maturity, rate=rate)},
+                {'type': 'put_down_in', 'object': put_option, 'quantity': -1.0}
+            ]
+        
+        if stru_type_strat in ["Autocall Athena"]:
+            params_stru["strike"] = st.number_input("Entrez le a des options :", 0.0, format="%.2f", value=100.0, step=0.01)
+        
+        if stru_type_strat in ["Barrier digital"]:
+
+            params_stru["barriere_digit"] = st.number_input("Entrez le strike de la barrière up & in :", 0.0, format="%.2f", value=110.0, step=0.01)
+            params_stru["strike_digit"] = st.number_input("Entrez le strike du call utilisé pour la réplication :", 0.0, format="%.2f", value=100.0, step=0.01)
+
+            up_barrier = Barriere(
+                niveau_barriere=params_stru["barriere_digit"],
+                type_barriere=TypeBarriere.knock_in,
+                direction_barriere=DirectionBarriere.up
+            )
+            
+            barrier_call = Option(
+                prix_exercice=params_stru["strike_digit"],
+                maturite=date_maturite,
+                call=True,
+                barriere=up_barrier
+            )
+
+            digital_components = [
+                {'type': 'digital_call', 'strike': params_stru["barriere_digit"], 'payout': params_stru["barriere_digit"] - params_stru["strike_digit"], 'quantity': 1.0},
+                {'type': 'barrier', 'object': barrier_call}
+            ]
 
     with col4321:
         params_stru["quantity"] = st.number_input("Quantité de produit structuré:",0, value=1, step=1)
@@ -311,6 +392,9 @@ option = Option(date_maturite, strike, barriere=barriere,
                 date_pricing=date_pricing)
 
 bs_check = option.americaine==False and donnee_marche.dividende_montant == 0 and option.barriere.direction_barriere == None and not vasicek_model_check
+
+
+
 
 ###########################################################################
 ############# Onglet 2 : Inputs additionnels Utilisateur ##################
@@ -524,14 +608,6 @@ with tab1:
             st.session_state.portfolio = OptionsPortfolio("", brownian, donnee_marche)
         
         st.session_state.portfolio.add_option(option, 1*params["quantity"] if sens_option == 'Long' else -1*params["quantity"])  
-    
-
-    if ajouter_produit:
-        if 'portfolio_stru' not in st.session_state:
-            st.session_state.portfolio_stru = StructuredProductsPortfolio(brownian, donnee_marche)
-        
-        st.session_state.portfolio_stru.add_option(option, 1*params["quantity"] if sens_option == 'Long' else -1*params["quantity"])  
-    
 
     if ajouter_strategie:
         strategy_name = option_type_strat.lower()
@@ -666,7 +742,13 @@ with tab1:
                     st.dataframe(greeks_folio)
     except:
         pass
-
+    
+    if ajouter_produit:
+        if 'portfolio_stru' not in st.session_state:
+            st.session_state.portfolio_stru = StructuredProductsPortfolio("",brownian, donnee_marche)
+        
+        st.session_state.portfolio_stru.add_option(option, 1*params["quantity"] if sens_option == 'Long' else -1*params["quantity"])  
+    
 
 
 
