@@ -23,7 +23,7 @@ class BlackScholesPricer(PricerBase):
             float: Option price
         """
         volatility = np.sqrt(self.heston_parameters.v0)
-        S = self.option.spot_price
+        S = self.option.prix_spot
         K = self.option.strike
         r = self.option.risk_free_rate
         T = self.option.maturity
