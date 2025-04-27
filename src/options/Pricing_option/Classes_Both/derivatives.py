@@ -145,7 +145,7 @@ class OptionDerivatives:
         parameters : OptionDerivativesParameters
             Paramètres de l'option (marché + caractéristiques).
         pricer_options : dict
-            Options supplémentaires pour le pricer LSM.
+            src.options supplémentaires pour le pricer LSM.
     """
     def __init__(self, option: Option, market: DonneeMarche, pricer : LSM_method, pricer_options: dict = None)-> None:
         self.option = deepcopy(option)

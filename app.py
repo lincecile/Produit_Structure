@@ -489,7 +489,7 @@ with tab1:
             
     if st.button('Ajouter une option au portfeuille') :
         if 'portfolio' not in st.session_state:
-            st.session_state.portfolio = OptionsPortfolio(brownian, donnee_marche)
+            st.session_state.portfolio = OptionsPortfolio("", brownian, donnee_marche)
         
         st.session_state.portfolio.add_option(option, 1*params["quantity"] if sens_option == 'Long' else -1*params["quantity"])  
     
@@ -505,7 +505,7 @@ with tab1:
         strategy_name = option_type_strat.lower()
         
         if 'portfolio' not in st.session_state:
-            st.session_state.portfolio = OptionsPortfolio(brownian, donnee_marche)
+            st.session_state.portfolio = OptionsPortfolio('', brownian, donnee_marche)
 
         strategy = OptionsStrategy(st.session_state.portfolio, donnee_marche, expiry_date=date_maturite)
         
