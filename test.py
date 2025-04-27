@@ -6,17 +6,17 @@ import pandas as pd
 import plotly.graph_objects as go
 
 # Now we can import with absolute paths
-from options.Pricing_option.Classes_Both.module_option import Option
-from options.Pricing_option.Classes_Both.module_marche import DonneeMarche
-from options.Pricing_option.Classes_MonteCarlo_LSM.module_brownian import Brownian
-from options.Pricing_option.Classes_Both.module_barriere import Barriere, TypeBarriere, DirectionBarriere
-from bonds import ZCBond
-from rate import Rate
-from time_utils.maturity import Maturity
+from src.options.Pricing_option.Classes_Both.module_option import Option
+from src.options.Pricing_option.Classes_Both.module_marche import DonneeMarche
+from src.options.Pricing_option.Classes_MonteCarlo_LSM.module_brownian import Brownian
+from src.options.Pricing_option.Classes_Both.module_barriere import Barriere, TypeBarriere, DirectionBarriere
+from src.bonds import ZCBond
+from src.rate import Rate
+from src.time_utils.maturity import Maturity
 
 # Import our portfolio classes
-from Strategies_optionnelles.Portfolio_options import OptionsPortfolio
-from Strategies_optionnelles.Portfolio_structured import StructuredProductsPortfolio
+from src.Strategies_optionnelles.Portfolio_options import OptionsPortfolio
+from src.Strategies_optionnelles.Portfolio_structured import StructuredProductsPortfolio
 
 
 def test_portfolio_options():
@@ -190,6 +190,50 @@ def test_portfolio_structured():
         {'type': 'barrier', 'object': barrier_call}
     ]
     
+    # Create components for Athena Autocall product
+    # 1. Create observation dates (quarterly)
+    today = dt.date.today()
+    observation_dates = [
+        today + dt.timedelta(days=90),   # 3 months
+        today + dt.timedelta(days=180),  # 6 months
+        today + dt.timedelta(days=270),  # 9 months
+        today + dt.timedelta(days=365)   # 12 months
+    ]
+    
+    # 2. Set up the maturity for the zero-coupon bond in the Athena
+    athena_maturity = Maturity(
+        start_date=today,
+        end_date=observation_dates[-1],
+        day_count="ACT/365"
+    )
+    
+    athena_zcb = ZCBond(name="ZCBond_Athena", face_value=100.0, maturity=athena_maturity, rate=rate)
+    
+    # 3. Create barrier for the downside protection
+    protection_barrier = Barriere(
+        niveau_barriere=70.0,  # 70% of initial price
+        type_barriere=TypeBarriere.knock_in,
+        direction_barriere=DirectionBarriere.down
+    )
+    
+    athena_put = Option(
+        prix_exercice=100.0,
+        maturite=observation_dates[-1],
+        call=False,
+        barriere=protection_barrier
+    )
+    
+    # 4. Components for Athena Autocall
+    athena_components = [
+        {'type': 'zero_coupon_bond', 'object': athena_zcb},
+        {'type': 'put_down_in', 'object': athena_put, 'quantity': -1.0},
+        # Add autocall observations
+        {'type': 'autocall_observation', 'date': observation_dates[0], 'barrier_level': 30.0, 'coupon_rate': 0.5, 'payout': 102.5},
+        {'type': 'autocall_observation', 'date': observation_dates[1], 'barrier_level': 30.0, 'coupon_rate': 0.05, 'payout': 105.0},
+        {'type': 'autocall_observation', 'date': observation_dates[2], 'barrier_level': 100.0, 'coupon_rate': 0.075, 'payout': 107.5},
+        {'type': 'autocall_observation', 'date': observation_dates[3], 'barrier_level': 30.0, 'coupon_rate': 0.10, 'payout': 110.0}
+    ]
+    
     # Add products to portfolio
     structured_portfolio.add_structured_product(
         product_name="Capital Protected Note 90%",
@@ -215,6 +259,15 @@ def test_portfolio_structured():
         quantity=2.0
     )
     
+    # Add the Athena Autocall product
+    structured_portfolio.add_structured_product(
+        product_name="Athena Autocall 2.5/5.0/7.5/10.0% - 100/95/90/85% Barrier - 70% Protection",
+        product_type="athena_autocall",
+        components=athena_components,
+        price=97.5,
+        quantity=1.0
+    )
+    
     # Display portfolio information
     summary = structured_portfolio.get_portfolio_summary()
     print("Portfolio Summary:")
@@ -226,14 +279,14 @@ def test_portfolio_structured():
     print("\nPortfolio Details:")
     print(details)
     
-    # Plot individual product payoff
+    # Plot individual product payoff - Athena Autocall
     try:
-        fig = structured_portfolio.plot_product_payoff(product_index=0, show_premium=True)
-        print("\nCapital Protected Note payoff plot generated successfully.")
+        fig = structured_portfolio.plot_product_payoff(product_index=3, show_premium=True)
+        print("\nAthena Autocall payoff plot generated successfully.")
         # To display the plot:
         fig.show()
     except Exception as e:
-        print(f"Error plotting product payoff: {e}")
+        print(f"Error plotting Athena Autocall payoff: {e}")
     
     # Plot full portfolio payoff
     try:
@@ -246,7 +299,6 @@ def test_portfolio_structured():
     
     print("Structured Products Portfolio test complete!")
 
-
 if __name__ == "__main__":
-    test_portfolio_options()
+    # test_portfolio_options()
     test_portfolio_structured()

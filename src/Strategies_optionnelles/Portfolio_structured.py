@@ -327,7 +327,8 @@ class StructuredProductsPortfolio(Product):
 
     def _compute_athena_autocall_payoff(self, components: List[Dict], spot_prices: np.ndarray) -> np.ndarray:
         """
-        Calcule le payoff d'un produit Athena autocall à maturité.
+        Calcule le payoff d'un produit Athena autocall à maturité, avec prise en compte
+        de l'effet mémoire si présent.
         
         Args:
             components: Liste des composants du produit
@@ -336,7 +337,54 @@ class StructuredProductsPortfolio(Product):
         Returns:
             np.ndarray: Tableau numpy contenant le payoff pour chaque prix du sous-jacent
         """
-        pass
+        payoff = np.zeros_like(spot_prices)
+        
+        # Trouver l'obligation zéro-coupon (pour le remboursement du nominal)
+        bond_component = next((comp for comp in components if comp['type'] == 'zero_coupon_bond'), None)
+        
+        # Valeur nominale à rembourser
+        notional = bond_component['object'].face_value if bond_component and 'object' in bond_component else 100.0
+        
+        # Trouver les observations autocall (dernier niveau de barrière)
+        autocall_observations = [comp for comp in components if comp['type'] == 'autocall_observation']
+        
+        if autocall_observations:
+            # Prendre la dernière observation (maturité)
+            final_observation = autocall_observations[-1]
+            final_barrier = final_observation['barrier_level']
+            
+            # Utiliser le coupon total (qui inclut l'effet mémoire) si disponible
+            if 'total_coupon' in final_observation:
+                final_coupon = final_observation['total_coupon']
+            else:
+                final_coupon = final_observation['coupon_rate']
+            
+            # Si le prix à maturité est au-dessus de la dernière barrière,
+            # payer le nominal + coupon final (avec effet mémoire si applicable)
+            payoff = np.where(spot_prices >= final_barrier, 
+                            notional * (1 + final_coupon), 
+                            notional)  # Par défaut, rembourser le nominal
+        
+        # Trouver le put down-in (pour la protection à la baisse)
+        put_component = next((comp for comp in components if comp['type'] == 'put_down_in'), None)
+        
+        if put_component and 'object' in put_component and 'quantity' in put_component:
+            option = put_component['object']
+            quantity = put_component['quantity']
+            barrier = option.barriere.niveau_barriere
+            strike = option.prix_exercice
+            
+            # Payoff du put à barrière (down-in)
+            # Si le prix descend sous la barrière, le put est activé et le capital n'est plus protégé
+            put_payoff = np.maximum(0, strike - spot_prices)
+            barriere_activee = spot_prices <= barrier
+            put_payoff = np.where(barriere_activee, put_payoff, 0)
+            
+            # Soustraire la perte du put du remboursement du nominal
+            # (La quantité est négative car nous sommes courts sur le put)
+            payoff += put_payoff * quantity
+        
+        return payoff
     
     def plot_product_payoff(self, product_index: int, price_range: float = 0.3, 
                           num_points: int = 1000, show_premium: bool = True):
@@ -372,8 +420,8 @@ class StructuredProductsPortfolio(Product):
                     current_price = comp['object'].prix_exercice
                     break
         
-        min_price = current_price * (1 - price_range)
-        max_price = current_price * (1 + price_range)
+        min_price = 0
+        max_price = current_price * 2
         spot_prices = np.linspace(min_price, max_price, num_points)
         
         # Calculer le payoff
@@ -443,8 +491,8 @@ class StructuredProductsPortfolio(Product):
         
         # Déterminer l'étendue du prix spot (comme avant)
         current_price = 100  # Prix arbitraire, à remplacer par le prix réel
-        min_price = current_price * (1 - price_range)
-        max_price = current_price * (1 + price_range)
+        min_price = 0
+        max_price = current_price * 2
         spot_prices = np.linspace(min_price, max_price, num_points)
         
         # Calculer le payoff total
@@ -494,132 +542,6 @@ class StructuredProductsPortfolio(Product):
         fig.update_layout(
             title=f"Profit/Perte du portefeuille de produits structurés{title_suffix}",
             xaxis_title="Prix du sous-jacent",
-            yaxis_title="Profit/Perte",
-            legend=dict(
-                yanchor="top",
-                y=0.99,
-                xanchor="left",
-                x=0.01
-            ),
-            autosize=True,
-            height=600,
-            margin=dict(l=50, r=50, t=80, b=50)
-        )
-        
-        return fig
-
-
-    def plot_athena_payoff(self, product_index: int, price_range: float = 0.3, 
-                    num_points: int = 1000, show_premium: bool = True,
-                    show_all_autocalls: bool = True):
-        """
-        Trace le graphique du payoff d'un produit Athena autocall en utilisant Plotly.
-        
-        Args:
-            product_index: Indice du produit dans le portefeuille
-            price_range: Plage de variation du prix en pourcentage autour du prix actuel
-            num_points: Nombre de points pour le calcul du payoff
-            show_premium: Afficher le coût du produit dans le payoff
-            show_all_autocalls: Afficher toutes les barrières d'autocall ou uniquement celle à maturité
-        
-        Returns:
-            fig: Figure Plotly à afficher
-        """
-        import plotly.graph_objects as go
-        
-        if product_index >= len(self.structured_products):
-            raise ValueError(f"Index de produit invalide: {product_index}, le portefeuille contient {len(self.structured_products)} produits")
-        
-        product = self.structured_products[product_index]
-        if product['type'] != "athena_autocall":
-            raise ValueError(f"Le produit à l'index {product_index} n'est pas un Athena autocall")
-        
-        product_name = product['name']
-        price = product['price']
-        components = product['components']
-        
-        # Récupérer et trier les observations d'autocall par date d'observation
-        autocall_observations = [comp for comp in components if comp['type'] == 'autocall_observation']
-        autocall_observations = sorted(
-            autocall_observations,
-            key=lambda x: x.get('observation_time', 0.0)
-        )
-        
-        put_component = next((comp for comp in components if comp['type'] == 'put_down_in'), None)
-        
-        reference_price = 100
-        
-        # Extraire les barrières et coupons pour chaque date d'observation
-        autocall_barriers = []
-        autocall_coupons = []
-        observation_times = []
-        
-        for obs in autocall_observations:
-            autocall_barriers.append(obs.get('barrier_level', 1.0) * reference_price)
-            autocall_coupons.append(obs.get('cumulative_coupon', 0.0))
-            observation_times.append(obs.get('observation_time', 0.0))
-        
-        protection_barrier = None
-        if put_component and 'object' in put_component:
-            protection_barrier = put_component['object'].barriere.niveau_barriere
-        
-        min_price = reference_price * (1 - price_range)
-        max_price = reference_price * (1 + price_range)
-        spot_prices = np.linspace(min_price, max_price, num_points)
-        
-        # Calculer le payoff à maturité (en supposant que les autocalls précédents n'ont pas été déclenchés)
-        payoff = self.compute_payoff(product_index, spot_prices)
-        
-        if show_premium:
-            payoff -= price * product['quantity']
-        
-        fig = go.Figure()
-        
-        fig.add_trace(go.Scatter(
-            x=spot_prices,
-            y=payoff,
-            mode='lines',
-            line=dict(width=2, color='blue'),
-            name="Payoff à maturité"
-        ))
-        
-        # Afficher toutes les barrières d'autocall ou uniquement celle à maturité
-        if show_all_autocalls:
-            barriers_to_show = range(len(autocall_barriers))
-        else:
-            barriers_to_show = [-1]  # Uniquement la dernière (maturité)
-        
-        for i in barriers_to_show:
-            barrier = autocall_barriers[i]
-            coupon = autocall_coupons[i]
-            time = observation_times[i]
-            period = i + 1
-            
-            label = f"Autocall période {period}: {barrier:.2f} ({int(barrier/reference_price*100)}%)"
-            
-            fig.add_vline(x=barrier, line_width=1.5, line_dash="dash", line_color="green",
-                        annotation_text=label,
-                        annotation_position="top right" if i % 2 == 0 else "top left")
-        
-        if protection_barrier:
-            fig.add_vline(x=protection_barrier, line_width=1.5, line_dash="dash", line_color="red",
-                        annotation_text=f"Barrière de protection: {protection_barrier:.2f} ({int(protection_barrier/reference_price*100)}%)")
-        
-        fig.add_hline(y=0, line_width=1, line_dash="solid", line_color="grey")
-        
-        nominal = 100
-        bond_component = next((comp for comp in components if comp['type'] == 'zero_coupon_bond'), None)
-        if bond_component and 'object' in bond_component:
-            nominal = bond_component['object'].face_value
-        
-        premium_adjustment = price if show_premium else 0
-        fig.add_hline(y=nominal - premium_adjustment, line_width=1, line_dash="dot", line_color="blue",
-                    annotation_text="Capital initial")
-        
-        title_suffix = " (coût inclus)" if show_premium else ""
-        fig.update_layout(
-            title=f"Payoff de l'Athena Autocall: {product_name}{title_suffix}",
-            xaxis_title="Prix du sous-jacent à maturité",
             yaxis_title="Profit/Perte",
             legend=dict(
                 yanchor="top",

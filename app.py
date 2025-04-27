@@ -65,7 +65,7 @@ st.set_page_config(layout="wide")
 
 
 # Titre de l'application
-st.title("LSM Monte Carlo")
+st.title("Produit Structuré")
 st.markdown("""
 <p style="font-size:20px">
     <strong><a href="https://www.linkedin.com/in/emmaalaoui/" target="_blank">ALAOUI Emma</a>,
@@ -233,6 +233,7 @@ with tab1 :
         niveau_barriere=0
         type_barriere=None
         direction_barriere=None
+        print("Pas de barrière")
     
     # Stratégies
     
@@ -373,7 +374,7 @@ with col_opt_pricing[0]:
     
     
     if activer_pricing :
-        with st.popover('Résultats du pricing', use_container_width=True, icon="⚡"):
+        with st.popover('Résultats du pricing', use_container_width=True):
             if "pricings" not in st.session_state:
                 st.session_state.pricings = {}
 
