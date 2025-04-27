@@ -82,7 +82,7 @@ st.markdown("""
 ###################### Onglet 1 : Inputs Utilisateur ######################
 ########################################################################### 
 
-tab_option_strat, tab1, tab2, tab4, tab_risk_metrics, tab3, tabcomparaison = st.tabs(["Strat Option", "Pricing", "Plus d'options",  "Greeks", "Métriques de risques", "Graphique : Brownien et Sous-Jacent", "Analyse - Comparaison"])
+tab1, tab2, tab4, tab_risk_metrics, tab3, tabcomparaison = st.tabs(["Pricing", "Plus d'options",  "Greeks", "Métriques de risques", "Graphique : Brownien et Sous-Jacent", "Analyse - Comparaison"])
 
 
 with tab1 :
@@ -177,6 +177,10 @@ with tab1 :
     
     st.divider()
     
+    st.header("Option :")
+    
+    ajouter_option=st.button('Ajouter une option au portefeuille')
+    
     st.subheader("Caractéristique de l'option :")
     
     col31, col32, col33 = st.columns(3)
@@ -225,7 +229,14 @@ with tab1 :
         type_barriere=None
         direction_barriere=None
     
+    # Stratégies
+    
     st.divider()
+    
+    st.header("Stratégies :")
+    
+    ajouter_strategie=st.button('Ajouter une stratégie prédéfinie au portefeuille')
+    
     col412, col422, col432 = st.columns(3)
 
     with col412 :
@@ -251,9 +262,15 @@ with tab1 :
     
     with col432:
         params["quantity"] = st.number_input("Quantité:",0, value=1, step=1)
-        indice = st.number_input("Indice de l'option à supprimer:",0, value=1, step=1)
+
+    #Structurés
 
     st.divider()
+    
+    st.header("Produits Structurés :")
+    
+    ajouter_produit=st.button('Ajouter un produit structuré au portefeuille')
+    
     col4121, col4221, col4321 = st.columns(3)
     
     with col4121:
@@ -267,7 +284,11 @@ with tab1 :
         params_stru["quantity"] = st.number_input("Quantité de produit structuré:",0, value=1, step=1)
         indice_stru = st.number_input("Indice du produit à supprimer:",0, value=1, step=1)
 
+    #Portfolio
     
+    st.divider()
+    
+    st.header("Portefeuille :")
     
 #Ici, on feed les objets
 
@@ -462,21 +483,21 @@ with tab1:
                 st.metric('''Valeur de l'option :''', value=prix_option_heston, delta=None)
                 st.metric('Temps de pricing (secondes) :', value=time_difference, delta=None)
             
-    if st.button('Ajouter une option au portfeuille') :
+    if ajouter_option :
         if 'portfolio' not in st.session_state:
             st.session_state.portfolio = OptionsPortfolio("", brownian, donnee_marche)
         
         st.session_state.portfolio.add_option(option, 1*params["quantity"] if sens_option == 'Long' else -1*params["quantity"])  
     
 
-    if st.button('Ajouter un produit structuré au portfeuille') :
+    if ajouter_strategie :
         if 'portfolio' not in st.session_state:
             st.session_state.portfolio = StructuredProductsPortfolio(brownian, donnee_marche)
         
         st.session_state.portfolio.add_option(option, 1*params["quantity"] if sens_option == 'Long' else -1*params["quantity"])  
     
 
-    if st.button('Ajouter une stratégie prédéfinie au portfeuille') :
+    if ajouter_produit :
         strategy_name = option_type_strat.lower()
         
         if 'portfolio' not in st.session_state:
@@ -487,56 +508,133 @@ with tab1:
         strategy.create_strategy(option_type_strat, params, 1 if sens_option == 'Long' else -1)  
         st.success(f"Stratégie {option_type_strat} créée avec succès !")
     
-    if st.button('Récap du portfeuille') :
-
-        if 'portfolio' not in st.session_state:
-            st.error("Le portefeuille est vide")
-        else:
-            summary_folio = st.session_state.portfolio.get_portfolio_summary()
-            st.dataframe(summary_folio)
-
-    if st.button('Grecques du portfeuille') :
-
-        if 'portfolio' not in st.session_state:
-            st.error("Le portefeuille est vide")
-        else:
-            greeks_folio = st.session_state.portfolio.calculate_portfolio_greeks()
-            st.dataframe(greeks_folio)
-
-    if st.button('Détail du portfeuille') :
-
-        if 'portfolio' not in st.session_state:
-            st.error("Le portefeuille est vide")
-        else:
-            detail_folio = st.session_state.portfolio.get_portfolio_detail()
+    try : 
+        detail_folio = st.session_state.portfolio.get_portfolio_detail()
+        if len(detail_folio) != 0:
             st.dataframe(detail_folio)
+        fig = st.session_state.portfolio.plot_portfolio_payoff(show_individual=True)
+        st.plotly_chart(fig, use_container_width=True)
+    except : 
+        st.markdown("Aucune produit dans le portefeuille")
+
+
+    try:
+        len_option_check = len(st.session_state.portfolio.options) > 1 
+    except:
+        pass
+
+    if len(st.session_state.portfolio.options) == 1 :
+        st.divider()
+        st.subheader("Détail portefeuille :")
+
+        col_ptf = st.columns(3)
+        with col_ptf[0]:
+            recap_button = st.button('Récap du portefeuille', use_container_width=True)
+        with col_ptf[1]:
+            greeks_button = st.button('Grecques du portefeuille', use_container_width=True)
+        with col_ptf[2]:
+            remove_single_option_button = st.button("Supprimer l'option", use_container_width=True)
+            
+        if recap_button :
+            if 'portfolio' not in st.session_state:
+                st.error("Le portefeuille est vide")
+            else:
+                summary_folio = st.session_state.portfolio.get_portfolio_summary()
+                st.dataframe(summary_folio)
+
+        if greeks_button :
+
+            if 'portfolio' not in st.session_state:
+                st.error("Le portefeuille est vide")
+            else:
+                greeks_folio = st.session_state.portfolio.calculate_portfolio_greeks()
+                st.dataframe(greeks_folio)
+            
+        if remove_single_option_button:
+            if 'portfolio' in st.session_state and st.session_state.portfolio.options:
+                st.session_state.portfolio.remove_option_quantity(0,params["quantity"])
+                st.success("Supprimé")
+                st.rerun()
+            else:
+                st.error("Le portefeuille est vide")
+
+    if len_option_check:
+        st.divider()
+        st.subheader("Détail portefeuille :")
+
+        col_ptf = st.columns(2)
+        with col_ptf[0]:
+            recap_button = st.button('Récap du portefeuille', use_container_width=True)
+        with col_ptf[1]:
+            greeks_button = st.button('Grecques du portefeuille', use_container_width=True)
+
+
+        st.divider()
+        
+        st.subheader("Suppression :")
+
+        col_ptf_del_buttons = st.columns(4)
+        
+        with col_ptf_del_buttons[0]:     
+            indice = st.number_input("Indice de l'option à supprimer:",0, value=1, step=1)
+        with col_ptf_del_buttons[1]:
+            if len_option_check:
+                params["quantity_delete"] = st.number_input("Quantité à supprimer:", 0, value=2, step=1)
+            else :
+                params["quantity_delete"] = 1
+
+        col_ptf_del = st.columns(2)
+        if len_option_check:
+            with col_ptf_del[0]:
+                remove_option_button = st.button("Supprimer une option par son indice", use_container_width=True)
+        with col_ptf_del[0]:
+            remove_button = st.button(f"Supprimer cette quantité d'option de l'indice {indice}", use_container_width=True)
+
+        with col_ptf_del[1]:
+            clear_button = st.button("Vider le portefeuille", use_container_width=True)
+            
+        # Bouton pour supprimer une option du portefeuille
+        if remove_button:
+            if 'portfolio' in st.session_state:
+                st.session_state.portfolio.remove_option_quantity(indice,params["quantity_delete"])
+                st.success("Supprimé")
+                st.rerun()
+
+                # Bouton pour vider le portefeuille
+        if clear_button:
+            if 'portfolio' in st.session_state:
+                st.session_state.portfolio.clear_portfolio()
+                st.rerun()
+            
+
+        # Pour afficher le payoff d'une option spécifique
+        if len_option_check:
+            if remove_option_button:
+                if 'portfolio' in st.session_state and st.session_state.portfolio.options:
+                    st.session_state.portfolio.remove_option_quantity(indice,params["quantity"])
+                    st.success("Supprimé")
+                else:
+                    st.error("Le portefeuille est vide")
+
+        if recap_button :
+
+            if 'portfolio' not in st.session_state:
+                st.error("Le portefeuille est vide")
+            else:
+                summary_folio = st.session_state.portfolio.get_portfolio_summary()
+                st.dataframe(summary_folio)
+
+        if greeks_button :
+
+            if 'portfolio' not in st.session_state:
+                st.error("Le portefeuille est vide")
+            else:
+                greeks_folio = st.session_state.portfolio.calculate_portfolio_greeks()
+                st.dataframe(greeks_folio)
     
-    # Bouton pour supprimer une option du portefeuille
-    if st.button("Supprimer une/des options"):
-        if 'portfolio' in st.session_state:
-            st.session_state.portfolio.remove_option_quantity(indice,params["quantity"])
-            st.success("Supprimé")
 
-    # Bouton pour vider le portefeuille
-    if st.button("Vider le portefeuille"):
-        if 'portfolio' in st.session_state:
-            st.session_state.portfolio.clear_portfolio()
-            st.success("Le portefeuille a été vidé")
 
-    if st.button('Tracer le payoff du portefeuille'):
-        if 'portfolio' in st.session_state and st.session_state.portfolio.options :
-            fig = st.session_state.portfolio.plot_portfolio_payoff(show_individual=True)
-            st.plotly_chart(fig, use_container_width=True)
-        else:
-            st.error("Le portefeuille est vide")
 
-    # Pour afficher le payoff d'une option spécifique
-    if st.button('Tracer le payoff de l\'option 1'):
-        if 'portfolio' in st.session_state and st.session_state.portfolio.options:
-            fig = st.session_state.portfolio.plot_option_payoff(0)  # Option à l'indice 0
-            st.plotly_chart(fig)
-        else:
-            st.error("Le portefeuille est vide")
 
 
 
