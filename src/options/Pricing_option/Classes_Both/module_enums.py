@@ -32,6 +32,11 @@ class StratOption(Enum) :
     collar = "Collar"
     forward = "Forward"
 
+class StratStructured(Enum) : 
+    capitalprotectednote = "Capital protected note"
+    reverseconvertible = "Reverse convertible"
+    barrierdigit = "Barrier digital"
+
 class MethodeCalcul(Enum) : 
     vector = "Vectorielle"
     scalar = "Scalaire"

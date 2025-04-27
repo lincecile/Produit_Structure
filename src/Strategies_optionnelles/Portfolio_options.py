@@ -2,6 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from collections import defaultdict
 from typing import List, Dict, Tuple, Union, Optional
+from src.products import Product
 from src.options.Pricing_option.Classes_Both.module_barriere import TypeBarriere, DirectionBarriere
 from src.options.Pricing_option.Classes_MonteCarlo_LSM.module_LSM import LSM_method
 from src.options.Pricing_option.Classes_Both.module_option import Option
@@ -10,14 +11,26 @@ from src.options.Pricing_option.Classes_MonteCarlo_LSM.module_brownian import Br
 from src.options.Pricing_option.Classes_Both.derivatives import OptionDerivatives
 import plotly.graph_objects as go
 import pandas as pd
-class OptionsPortfolio:
+
+class OptionsPortfolio(Product):
     """
     Classe qui gère un portefeuille d'options (calls et puts) et calcule le payoff total
     ainsi que les grecques associées en utilisant les méthodes LSM et derivatives.
     """
     
-    def __init__(self, brownian: Brownian, market: DonneeMarche) -> None:
+    def __init__(self, name: str, 
+                 brownian: Brownian, 
+                 market: DonneeMarche,
+                 price_history: Optional[np.array] = None,
+                 price: Optional[float] = None,
+                 volatility: Optional[float] = None) -> None:
         """Initialise un portefeuille d'options vide."""
+
+        super().__init__(name=name,
+                         price_history=price_history,
+                         price=price,
+                         volatility=volatility)
+        
         self.options = []
         self.option_objects = []  # Pour stocker les objets Option
         self.market_data = market   # Pour stocker les données de marché
@@ -45,9 +58,7 @@ class OptionsPortfolio:
         self.option_objects.append(option)
 
         combined = defaultdict(lambda: {'quantity': 0})
-        print(self.options)
         for item in self.options:
-            print(item)
             rounded_premium = round(float(item['premium']), 2) 
             key = (item['type'], item['barriere'], item['niveau barriere'], item['strike'], rounded_premium)
             combined[key]['quantity'] += item['quantity']
@@ -59,12 +70,13 @@ class OptionsPortfolio:
         ]
 
         self.options = result
-        print(self.options)
-    
+        self.price = self._get_price()
+        
     def clear_portfolio(self):
         """Vide le portefeuille d'options."""
         self.options.clear()
         self.option_objects.clear()
+        self.price = 0.0
     
     def remove_option_quantity(self, option_index: int, quantity_to_remove: float) -> bool:
         """
@@ -91,8 +103,8 @@ class OptionsPortfolio:
             # On garde le signe de la position (long/short)
             sign = 1 if current_quantity > 0 else -1
             self.options[option_index]['quantity'] -= quantity_to_remove * sign
-            print(self.options)
-
+        
+        self.price = self._get_price()
 
     def _get_price(self) -> float:
         """Calcule le prix total du portefeuille"""
