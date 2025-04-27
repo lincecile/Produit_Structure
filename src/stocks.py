@@ -2,8 +2,8 @@
 
 from typing import Optional
 
-from products import Product
-from time_utils.schedule import Schedule
+from src.products import Product
+from src.time_utils.schedule import Schedule
 
 #%% classes
 

@@ -4,9 +4,9 @@ from dataclasses import dataclass
 import datetime as dt
 from typing import Optional
 
-from products import Product
-from time_utils.schedule import Schedule
-from rate import Rate
+from src.products import Product
+from src.time_utils.schedule import Schedule
+from src.rate import Rate
 
 #%% classes
 

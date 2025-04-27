@@ -2,16 +2,16 @@
 
 from typing import Optional
 
-from bonds import Bond
-from time_utils.schedule import Schedule, Maturity
-from rate import Rate
-from stocks import Stock
+from src.bonds import Bond
+from src.time_utils.schedule import Schedule, Maturity
+from src.rate import Rate
+from src.stocks import Stock
 
-from options.Pricing_option.Classes_Both.module_marche import DonneeMarche
-from options.Pricing_option.Classes_Both.module_option import Option
-from options.Pricing_option.Classes_Both.module_enums import ConventionBaseCalendaire, TypeBarriere, DirectionBarriere
-from options.Pricing_option.Classes_TrinomialTree.module_arbre_noeud import Arbre
-from options.Pricing_option.Classes_TrinomialTree.module_grecques_empiriques import GrecquesEmpiriques
+from src.options.Pricing_option.Classes_Both.module_marche import DonneeMarche
+from src.options.Pricing_option.Classes_Both.module_option import Option
+from src.options.Pricing_option.Classes_Both.module_enums import ConventionBaseCalendaire, TypeBarriere, DirectionBarriere
+from src.options.Pricing_option.Classes_TrinomialTree.module_arbre_noeud import Arbre
+from src.options.Pricing_option.Classes_TrinomialTree.module_grecques_empiriques import GrecquesEmpiriques
 
 #%% classes
 
