@@ -315,7 +315,7 @@ with tab1 :
             ]
         
         if stru_type_strat in ["Reverse convertible"]:
-            
+    
             params_stru["Valeur_faciale_rc"] = st.number_input("Entrez la valeur faciale de l'obligation ZC :", 0.0, format="%.2f", value=90.0, step=0.01)
             params_stru["rateZC_rc"] = st.number_input("Entrez le taux facial du ZC :", 0.0, format="%.2f", value=0.05, step=0.01)
             params_stru["barriere_rc"] = st.number_input("Entrez le strike de la barrière down & in :", 0.0, format="%.2f", value=85.0, step=0.01)
@@ -341,7 +341,69 @@ with tab1 :
             ]
         
         if stru_type_strat in ["Autocall Athena"]:
-            params_stru["strike"] = st.number_input("Entrez le a des options :", 0.0, format="%.2f", value=100.0, step=0.01)
+
+            params_stru["Nb_observation"] = st.number_input("Entrez le nombre d'observation de l'autocall :", 0, value=2, step=1)
+            params_stru["Valeur_faciale_Athena"] = st.number_input("Entrez la valeur faciale de l'obligation ZC :", 0.0, format="%.2f", value=90.0, step=0.01)
+            params_stru["rateZC_Athena"] = st.number_input("Entrez le taux facial du ZC :", 0.0, format="%.2f", value=0.05, step=0.01)
+            params_stru["barriere_Athena"] = st.number_input("Entrez le strike de la barrière down & in :", 0.0, format="%.2f", value=85.0, step=0.01)
+            params_stru["strike_Athena"] = st.number_input("Entrez le strike du put :", 0.0, format="%.2f", value=100.0, step=0.01)
+            params_stru["base_coupon_rates"] = st.number_input("Entrez le taux de coupon de base :", 0.0, format="%.2f", value=0.05, step=0.01)
+            params_stru["base_coupon_rates"] = [params_stru["base_coupon_rates"] for i in range(params_stru["Nb_observation"])]
+
+            # Create components for Athena Autocall product
+            # 1. Create observation dates (quarterly)
+            today = dt.date.today()
+            observation_dates = [
+                today + dt.timedelta(days=90*i)   # tous les 3 months
+                for i in range(params_stru["Nb_observation"])
+            ]
+            
+            athena_maturity = Maturity(
+                start_date=today,
+                end_date=observation_dates[-1],
+                day_count="ACT/365"
+            )
+
+            rate = Rate(params_stru["rateZC_Athena"])
+            athena_zcb = ZCBond(name="ZCBond", face_value=params_stru["Valeur_faciale_Athena"], maturity=athena_maturity, rate=rate)
+            
+            # Barriere pour la protection downside
+            protection_barrier = Barriere(
+                niveau_barriere=params_stru["barriere_Athena"], 
+                type_barriere=TypeBarriere.knock_in,
+                direction_barriere=DirectionBarriere.down
+            )
+            
+            athena_put = Option(
+                prix_exercice=params_stru["strike_Athena"],
+                maturite=observation_dates[-1],
+                call=False,
+                barriere=protection_barrier
+            )
+
+            # Calculer les coupons avec effet mémoire et les paiements totaux
+            athena_components = [
+                {'type': 'zero_coupon_bond', 'object': athena_zcb},
+                {'type': 'put_down_in', 'object': athena_put, 'quantity': -1.0},
+            ]
+            
+            # Ajouter les observations avec effet mémoire
+            for i, date in enumerate(observation_dates):
+                barrier_level = params_stru["barriere_Athena"]
+                coupon_rate = params_stru["base_coupon_rates"][i]
+                memory_coupon = sum(params_stru["base_coupon_rates"][:i])  # Coupons précédents non payés
+                total_coupon = coupon_rate + memory_coupon  # Coupon total avec effet mémoire
+                payout = 100.0 * (1 + total_coupon)  # Paiement total: nominal + coupon total
+                
+                athena_components.append({
+                    'type': 'autocall_observation',
+                    'date': date,
+                    'barrier_level': barrier_level,
+                    'coupon_rate': coupon_rate,
+                    'memory_coupon': memory_coupon,
+                    'total_coupon': total_coupon,
+                    'payout': payout
+                })
         
         if stru_type_strat in ["Barrier digital"]:
 
@@ -369,6 +431,8 @@ with tab1 :
     with col4321:
         params_stru["quantity"] = st.number_input("Quantité de produit structuré:",0, value=1, step=1)
         indice_stru = st.number_input("Indice du produit à supprimer:",0, value=1, step=1)
+
+
 
     #Portfolio
     
