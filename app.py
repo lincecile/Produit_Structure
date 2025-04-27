@@ -349,8 +349,8 @@ with tab1:
     #st.session_state.model_used = []
 
     if activer_pricing :
-        if "pricings" not in st.session_state:
-            st.session_state.pricings = {}
+        # if "pricings" not in st.session_state:
+        #     st.session_state.pricings = {}
 
         if  bs_check : 
             # @st.cache_data
@@ -368,11 +368,11 @@ with tab1:
             #st.session_state.pricer_used = st.session_state.pricer_used + [bns]
             #st.session_state.model_used = st.session_state.model_used + ["Black-Scholes"]
 
-            st.session_state.pricings["BS"] = {
-                "option": option,
-                "pricer": bns,
-                "market_data": donnee_marche
-            }
+            # st.session_state.pricings["BS"] = {
+            #     "option": option,
+            #     "pricer": bns,
+            #     "market_data": donnee_marche
+            # }
 
         if option_exercice == 'Asiatique':
             st.divider()
@@ -394,11 +394,11 @@ with tab1:
 
             #st.session_state.pricer_used = st.session_state.pricer_used + [pricer]
             #st.session_state.model_used = st.session_state.model_used + ["LSM"]
-            st.session_state.pricings["LSM"] = {
-                "option": option,
-                "pricer": pricer,
-                "market_data": donnee_marche_LSM
-            }
+            # st.session_state.pricings["LSM"] = {
+            #     "option": option,
+            #     "pricer": pricer,
+            #     "market_data": donnee_marche_LSM
+            # }
 
             col11_LSM, col2_LSM, col3_LSM = st.columns(3) 
             with col11_LSM:
@@ -422,11 +422,11 @@ with tab1:
 
             #st.session_state.pricer_used = st.session_state.pricer_used + [arbre]
             #st.session_state.model_used = st.session_state.model_used + ["Arbre Trinomial"]
-            st.session_state.pricings["Arbre Trinomial"] = {
-                "option": option,
-                "pricer": arbre,
-                "market_data": donnee_marche
-            }
+            # st.session_state.pricings["Arbre Trinomial"] = {
+            #     "option": option,
+            #     "pricer": arbre,
+            #     "market_data": donnee_marche
+            # }
             # arbre_st = arbre
             
             st.metric('''Valeur de l'option :''', value=prix_option, delta=None)
@@ -474,11 +474,11 @@ with tab1:
 
             #st.session_state.pricer_used = st.session_state.pricer_used + [mc_pricer]
             #st.session_state.model_used = st.session_state.model_used + ["Heston"]
-            st.session_state.pricings["Heston"] = {
-                "option": option,
-                "pricer": mc_pricer,
-                "market_data": donnee_marche
-            }
+            # st.session_state.pricings["Heston"] = {
+            #     "option": option,
+            #     "pricer": mc_pricer,
+            #     "market_data": donnee_marche
+            # }
 
             prix_option_heston = f"{round(heston_price, 2)}€"
 
@@ -689,22 +689,26 @@ with tab_risk_metrics:
 
     st.subheader("Analyse des risques : matrice de P&L et stress scénarios")
 
-    if "pricings" in st.session_state and st.session_state.pricings:
+    # if "pricings" in st.session_state and st.session_state.pricings:
 
-        available_models = list(st.session_state.pricings.keys())
+    #     available_models = list(st.session_state.pricings.keys())
 
-        selected_model = st.selectbox(
-            "Choisissez le modèle utilisé pour l'analyse de risque :",
-            available_models
-        )
+    #     selected_model = st.selectbox(
+    #         "Choisissez le modèle utilisé pour l'analyse de risque :",
+    #         available_models
+    #     )
 
-        selected_data = st.session_state.pricings[selected_model]
-        option_selected = selected_data["option"]
-        pricer_selected = selected_data["pricer"]
-        market_data_selected = selected_data["market_data"]
-    # if activer_pricing:
+    #     selected_data = st.session_state.pricings[selected_model]
+    #     option_selected = selected_data["option"]
+    #     pricer_selected = selected_data["pricer"]
+    #     market_data_selected = selected_data["market_data"]
+    if activer_pricing:
+        selected_pricer = BlackAndScholes(modele=arbre)
+        #selected_pricer = arbre
+        #analyzer = AnalysisTools(option, selected_pricer, pricing_function=selected_pricer.pricer_arbre)
+        analyzer = AnalysisTools(option, selected_pricer, pricing_function=selected_pricer.bs_pricer)
 
-    #     # run_metrique = st.button("Calculer la matrice de P&L")
+        
 
     #     option_selected = st.session_state.option_priced
 
@@ -713,27 +717,27 @@ with tab_risk_metrics:
     #     # if run_metrique:
     #     print("aaaa",pricer_selection)
         # Ici on recrée le bon pricer selon la sélection de l'utilisateur
-        if selected_model == "BS":
-            #analyzer = AnalysisTools(option_selected, pricer_selected , pricing_function=pricer_selected.bs_pricer, params = market_data_selected)
-            analyzer = AnalysisTools(
-                    option=option_selected,
-                    pricer=pricer_selected,
-                    pricing_function=lambda:  BlackAndScholes(modele=arbre).bs_pricer(),
-                    params=market_data_selected)
+        # if selected_model == "BS":
+        #     #analyzer = AnalysisTools(option_selected, pricer_selected , pricing_function=pricer_selected.bs_pricer, params = market_data_selected)
+        #     analyzer = AnalysisTools(
+        #             option=option_selected,
+        #             pricer=pricer_selected,
+        #             pricing_function=lambda:  BlackAndScholes(modele=arbre).bs_pricer(),
+        #             params=market_data_selected)
 
-        elif selected_model == "LSM":
-            analyzer = AnalysisTools(
-                option_selected,
-                pricer_selected,
-                pricing_function=lambda: pricer_selected.LSM(
-                    brownian, market_data_selected, method='vector', antithetic=False, poly_degree=2, model_type='Polynomial'
-                )[0],
-                params = market_data_selected
-            )
-        elif selected_model == "Heston":
-            analyzer = AnalysisTools(option_selected, pricer_selected, pricing_function=pricer_selected.price, params = market_data_selected)
-        elif selected_model == "Arbre":
-            analyzer = AnalysisTools(option_selected, pricer_selected, pricing_function=pricer_selected.pricer_arbre, params = market_data_selected)
+        # elif selected_model == "LSM":
+        #     analyzer = AnalysisTools(
+        #         option_selected,
+        #         pricer_selected,
+        #         pricing_function=lambda: pricer_selected.LSM(
+        #             brownian, market_data_selected, method='vector', antithetic=False, poly_degree=2, model_type='Polynomial'
+        #         )[0],
+        #         params = market_data_selected
+        #     )
+        # elif selected_model == "Heston":
+        #     analyzer = AnalysisTools(option_selected, pricer_selected, pricing_function=pricer_selected.price, params = market_data_selected)
+        # elif selected_model == "Arbre":
+        #     analyzer = AnalysisTools(option_selected, pricer_selected, pricing_function=pricer_selected.pricer_arbre, params = market_data_selected)
 
         # if selected_model == "BS":
             
@@ -768,27 +772,33 @@ with tab_risk_metrics:
         #     )
         #     analyzer = AnalysisTools(option_selected, selected_pricer, pricing_function=selected_pricer.price)
 
-        else:
-            selected_pricer = None
-            analyzer = None
+        # else:
+        #     selected_pricer = None
+        #     analyzer = None
 
         if analyzer is not None:
-            st.write(vars(option_selected))
             with st.spinner("Calcul de la matrice de PnL..."):
-                spot_range = np.linspace(spot * 0.9, spot * 1.1, 5)  # Exemple : +/- 10% du spot actuel
+                spot_range = np.linspace(spot * 0.9, spot * 1.1, 5) 
+                vol_range = np.linspace(0.8 * volatite, 1.2 * volatite, 5)  
 
-                pnl_matrix = analyzer.compute_pnl_matrix(
-                    x_param_name='prix_spot',   # Corrigé ici
+                pnl_matrix_spot = analyzer.compute_pnl_matrix(
+                    x_param_name='prix_spot',  
                     x_param_values=spot_range
                 )
 
+                # pnl_matrix_vol = analyzer.compute_pnl_matrix(
+                #     x_param_name='volatilite',  
+                #     x_param_values=vol_range
+                # )
+
             st.subheader("Matrice de P&L :")
-            st.dataframe(pnl_matrix.round(4))
-            st.pyplot(analyzer.plot_pnl_matrix(pnl_matrix, title="Matrice de P&L"))
+            st.dataframe(pnl_matrix_spot.round(4))
+            #st.dataframe(pnl_matrix_vol.round(4))
+            st.pyplot(analyzer.plot_pnl_matrix(pnl_matrix_spot, title="P&L de l'option"))
 
             st.divider()
             
-            # st.subheader("Scénarios de stress :")
+            st.subheader("Scénarios de stress :")
             
             # crisis_scenarios = [
             #     {'spot_price': spot, 'v0': volatite**2, 'rho': -0.7},
@@ -798,22 +808,45 @@ with tab_risk_metrics:
             #     {'spot_price': spot * 0.9, 'v0': 0.15, 'risk_free_rate': 0.08, 'rho': -0.6},
             # ]
 
-            # scenario_names = [
-            #     "Conditions normales",
-            #     "Crise 2008",
-            #     "COVID-19",
-            #     "Bulle Internet",
-            #     "Hausse des taux 2022"
-            # ]
+            crisis_scenarios = [
+    # Conditions normales (point de départ)
+    {'prix_spot': spot, 'volatilite': volatite, 'risk_free': risk_free_rate},
+    
+    # Crise financière 2008
+    {'prix_spot': spot * 0.6, 'volatilite': 0.5, 'risk_free': 0.01},
+    
+    # COVID-19 crash 2020
+    {'prix_spot': spot * 0.65, 'volatilite': 0.8, 'risk_free': 0.01},
+    
+    # Bulle Internet 2000
+    {'prix_spot': spot * 0.7, 'volatilite': 0.35, 'risk_free': 0.05},
+    
+    # Hausse des taux 2022
+    {'prix_spot': spot * 0.8, 'volatilite': 0.25, 'risk_free': 0.05},
+    
+    # Crise dette européenne 2011
+    {'prix_spot': spot * 0.75, 'volatilite': 0.4, 'risk_free': 0.02}
+]
 
-            # with st.spinner("Calcul des scénarios de stress..."):
-            #     stress_results = analyzer.stress_test(crisis_scenarios, scenario_names)
+
+            scenario_names = [
+    "Conditions normales",
+    "Crise financière 2008",
+    "COVID-19 2020",
+    "Bulle internet 2000",
+    "Hausse des taux 2022",
+    "Crise dette souveraine 2011"
+]
+
+
+
+            with st.spinner("Calcul des scénarios de stress..."):
+                stress_results = analyzer.stress_test(crisis_scenarios, scenario_names)
             
-            # st.dataframe(stress_results)
-            # st.pyplot(analyzer.plot_stress_results(stress_results))
+            st.dataframe(stress_results)
         
-    # else:
-    #     st.warning("Veuillez d'abord lancer le pricing avant d'accéder aux métriques de risques.")
+    else:
+        st.warning("Veuillez d'abord lancer le pricing avant d'accéder aux métriques de risques.")
 
         
 # ###########################################################################
