@@ -520,30 +520,15 @@ with col_opt_pricing[0]:
     
     
     if activer_pricing :
-        # if "pricings" not in st.session_state:
-        #     st.session_state.pricings = {}
 
             if  bs_check : 
-                # @st.cache_data
-                # def bns_return(_arbre : Arbre) -> BlackAndScholes:
-                #     bns = BlackAndScholes(modele=_arbre)
-                #     pricing_bns = f"{round(bns.bs_pricer(),2)}€"
-                #     return pricing_bns
-                
+
                 bns = BlackAndScholes(modele=arbre)
                 pricing_bns = f"{round(bns.bs_pricer(),2)}€"
                 st.divider()
                 st.subheader('Pricing Black and Scholes : ')
                 st.metric('', value = pricing_bns)
 
-                #st.session_state.pricer_used = st.session_state.pricer_used + [bns]
-                #st.session_state.model_used = st.session_state.model_used + ["Black-Scholes"]
-
-            # st.session_state.pricings["BS"] = {
-            #     "option": option,
-            #     "pricer": bns,
-            #     "market_data": donnee_marche
-            # }
 
             if option_exercice == 'Asiatique':
                 st.divider()
@@ -563,13 +548,6 @@ with col_opt_pricing[0]:
                 std_error = f"{round(std_error, 4)}€"
                 intevalles = f"{round(intevalles[0], 4)}€ - {round(intevalles[1], 4)}€"
 
-            #st.session_state.pricer_used = st.session_state.pricer_used + [pricer]
-            #st.session_state.model_used = st.session_state.model_used + ["LSM"]
-            # st.session_state.pricings["LSM"] = {
-            #     "option": option,
-            #     "pricer": pricer,
-            #     "market_data": donnee_marche_LSM
-            # }
 
                 col11_LSM, col2_LSM, col3_LSM = st.columns(3) 
                 with col11_LSM:
@@ -591,14 +569,6 @@ with col_opt_pricing[0]:
                 time_difference = round(end - start, 1)
                 prix_option = f"{round(arbre.prix_option, 2)}€"
 
-            #st.session_state.pricer_used = st.session_state.pricer_used + [arbre]
-            #st.session_state.model_used = st.session_state.model_used + ["Arbre Trinomial"]
-            # st.session_state.pricings["Arbre Trinomial"] = {
-            #     "option": option,
-            #     "pricer": arbre,
-            #     "market_data": donnee_marche
-            # }
-            # arbre_st = arbre
             
             st.metric('''Valeur de l'option :''', value=prix_option, delta=None)
             st.metric('Temps de pricing (secondes) :', value=time_difference, delta=None)
@@ -642,14 +612,6 @@ with col_opt_pricing[0]:
 
                 end = time.time()
                 time_difference = round(end - start, 1)
-
-            #st.session_state.pricer_used = st.session_state.pricer_used + [mc_pricer]
-            #st.session_state.model_used = st.session_state.model_used + ["Heston"]
-            # st.session_state.pricings["Heston"] = {
-            #     "option": option,
-            #     "pricer": mc_pricer,
-            #     "market_data": donnee_marche
-            # }
 
                 prix_option_heston = f"{round(heston_price, 2)}€"
 
