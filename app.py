@@ -528,14 +528,14 @@ with tab1:
         st.session_state.portfolio.add_option(option, 1*params["quantity"] if sens_option == 'Long' else -1*params["quantity"])  
     
 
-    if ajouter_strategie :
-        if 'portfolio' not in st.session_state:
-            st.session_state.portfolio = StructuredProductsPortfolio(brownian, donnee_marche)
+    if ajouter_produit:
+        if 'portfolio_stru' not in st.session_state:
+            st.session_state.portfolio_stru = StructuredProductsPortfolio(brownian, donnee_marche)
         
-        st.session_state.portfolio.add_option(option, 1*params["quantity"] if sens_option == 'Long' else -1*params["quantity"])  
+        st.session_state.portfolio_stru.add_option(option, 1*params["quantity"] if sens_option == 'Long' else -1*params["quantity"])  
     
 
-    if ajouter_produit :
+    if ajouter_strategie:
         strategy_name = option_type_strat.lower()
         
         if 'portfolio' not in st.session_state:
