@@ -56,7 +56,7 @@ from src.bonds import ZCBond
 from src.rate import Rate
 
 
-from analysis_tools import AnalysisTools 
+from src.analysis_tools import AnalysisTools 
 
 #%% Constantes
 
@@ -315,7 +315,7 @@ with tab1 :
             ]
         
         if stru_type_strat in ["Reverse convertible"]:
-            
+    
             params_stru["Valeur_faciale_rc"] = st.number_input("Entrez la valeur faciale de l'obligation ZC :", 0.0, format="%.2f", value=90.0, step=0.01)
             params_stru["rateZC_rc"] = st.number_input("Entrez le taux facial du ZC :", 0.0, format="%.2f", value=0.05, step=0.01)
             params_stru["barriere_rc"] = st.number_input("Entrez le strike de la barrière down & in :", 0.0, format="%.2f", value=85.0, step=0.01)
@@ -341,7 +341,67 @@ with tab1 :
             ]
         
         if stru_type_strat in ["Autocall Athena"]:
-            params_stru["strike"] = st.number_input("Entrez le a des options :", 0.0, format="%.2f", value=100.0, step=0.01)
+
+            params_stru["Nb_observation"] = st.number_input("Entrez le nombre d'observation de l'autocall :", 0, value=2, step=1)
+            params_stru["Valeur_faciale_Athena"] = st.number_input("Entrez la valeur faciale de l'obligation ZC :", 0.0, format="%.2f", value=90.0, step=0.01)
+            params_stru["rateZC_Athena"] = st.number_input("Entrez le taux facial du ZC :", 0.0, format="%.2f", value=0.05, step=0.01)
+            params_stru["barriere_Athena"] = st.number_input("Entrez le strike de la barrière down & in :", 0.0, format="%.2f", value=85.0, step=0.01)
+            params_stru["strike_Athena"] = st.number_input("Entrez le strike du put :", 0.0, format="%.2f", value=100.0, step=0.01)
+            params_stru["base_coupon_rates"] = st.number_input("Entrez le taux de coupon de base :", 0.0, format="%.2f", value=0.05, step=0.01)
+            params_stru["base_coupon_rates"] = [params_stru["base_coupon_rates"] for i in range(params_stru["Nb_observation"])]
+
+            today = dt.date.today()
+            observation_dates = [
+                today + dt.timedelta(days=90*i)   
+                for i in range(params_stru["Nb_observation"])
+            ]
+            
+            athena_maturity = Maturity(
+                start_date=today,
+                end_date=observation_dates[-1],
+                day_count="ACT/365"
+            )
+
+            rate = Rate(params_stru["rateZC_Athena"])
+            athena_zcb = ZCBond(name="ZCBond", face_value=params_stru["Valeur_faciale_Athena"], maturity=athena_maturity, rate=rate)
+            
+            # Barriere pour la protection downside
+            protection_barrier = Barriere(
+                niveau_barriere=params_stru["barriere_Athena"], 
+                type_barriere=TypeBarriere.knock_in,
+                direction_barriere=DirectionBarriere.down
+            )
+            
+            athena_put = Option(
+                prix_exercice=params_stru["strike_Athena"],
+                maturite=observation_dates[-1],
+                call=False,
+                barriere=protection_barrier
+            )
+
+            # Calculer les coupons avec effet mémoire et les paiements totaux
+            athena_components = [
+                {'type': 'zero_coupon_bond', 'object': athena_zcb},
+                {'type': 'put_down_in', 'object': athena_put, 'quantity': -1.0},
+            ]
+            
+            # Ajouter les observations avec effet mémoire
+            for i, date in enumerate(observation_dates):
+                barrier_level = params_stru["barriere_Athena"]
+                coupon_rate = params_stru["base_coupon_rates"][i]
+                memory_coupon = sum(params_stru["base_coupon_rates"][:i])  # Coupons précédents non payés
+                total_coupon = coupon_rate + memory_coupon  # Coupon total avec effet mémoire
+                payout = 100.0 * (1 + total_coupon)  # Paiement total: nominal + coupon total
+                
+                athena_components.append({
+                    'type': 'autocall_observation',
+                    'date': date,
+                    'barrier_level': barrier_level,
+                    'coupon_rate': coupon_rate,
+                    'memory_coupon': memory_coupon,
+                    'total_coupon': total_coupon,
+                    'payout': payout
+                })
         
         if stru_type_strat in ["Barrier digital"]:
 
@@ -368,13 +428,16 @@ with tab1 :
 
     with col4321:
         params_stru["quantity"] = st.number_input("Quantité de produit structuré:",0, value=1, step=1)
-        indice_stru = st.number_input("Indice du produit à supprimer:",0, value=1, step=1)
+
+
 
     #Portfolio
     
     st.divider()
+    st.header("Portefeuilles :")
+    tabs_portfolio = st.tabs(["Portefeuille Options", "Portfeuille Produits Structurés"])
     
-    st.header("Portefeuille :")
+    
     
 #Ici, on feed les objets
 
@@ -620,7 +683,8 @@ with tab1:
         strategy.create_strategy(option_type_strat, params, 1 if sens_option == 'Long' else -1)  
         st.success(f"Stratégie {option_type_strat} créée avec succès !")
     
-    
+with tabs_portfolio[0] :
+
     try : 
         detail_folio = st.session_state.portfolio.get_portfolio_detail()
         if len(detail_folio) != 0:
@@ -743,13 +807,109 @@ with tab1:
     except:
         pass
     
-    if ajouter_produit:
-        if 'portfolio_stru' not in st.session_state:
-            st.session_state.portfolio_stru = StructuredProductsPortfolio("",brownian, donnee_marche)
-        
-        st.session_state.portfolio_stru.add_option(option, 1*params["quantity"] if sens_option == 'Long' else -1*params["quantity"])  
-    
+with tabs_portfolio[1]:
+    # Initialize portfolio if needed
+    if 'portfolio_stru' not in st.session_state:
+        st.session_state.portfolio_stru = StructuredProductsPortfolio("Structured Products Portfolio")
 
+    # Handle adding products when the add button is clicked
+    if ajouter_produit:
+        if stru_type_strat == "Capital protected note":
+            # Add capital protected note using the components already created
+            st.session_state.portfolio_stru.add_structured_product(
+                product_name=f"Capital Protected Note {params_stru['Valeur_faciale_note']}%",
+                product_type="capital_protected_note",
+                components=cpn_components,
+                price=params_stru["Valeur_faciale_note"] * (1 + params_stru["rateZC_note"]), # Simple price estimation
+                quantity=params_stru["quantity"] if sens_stru == 'Long' else -params_stru["quantity"]
+            )
+            st.success(f"Capital Protected Note ajouté au portefeuille!")
+
+        elif stru_type_strat == "Reverse convertible":
+            # Add reverse convertible using the components already created
+            st.session_state.portfolio_stru.add_structured_product(
+                product_name=f"Reverse Convertible {params_stru['rateZC_rc']*100}% - {params_stru['barriere_rc']}",
+                product_type="reverse_convertible",
+                components=rc_components,
+                price=params_stru["Valeur_faciale_rc"] * (1 + params_stru["rateZC_rc"]), # Simple price estimation
+                quantity=params_stru["quantity"] if sens_stru == 'Long' else -params_stru["quantity"]
+            )
+            st.success(f"Reverse Convertible ajouté au portefeuille!")
+
+        elif stru_type_strat == "Barrier digital":
+            # Add barrier digital using the components already created
+            st.session_state.portfolio_stru.add_structured_product(
+                product_name=f"Barrier Digital {params_stru['barriere_digit']}",
+                product_type="barrier_digital",
+                components=digital_components,
+                price=(params_stru["barriere_digit"] - params_stru["strike_digit"]) * 0.3, # Simple price estimation
+                quantity=params_stru["quantity"] if sens_stru == 'Long' else -params_stru["quantity"]
+            )
+            st.success(f"Barrier Digital ajouté au portefeuille!")
+
+    # Display portfolio content
+    try:
+        if 'portfolio_stru' in st.session_state and hasattr(st.session_state.portfolio_stru, 'structured_products') and len(st.session_state.portfolio_stru.structured_products) > 0:
+            # Display portfolio details
+            detail_folio = st.session_state.portfolio_stru.get_portfolio_detail()
+            st.dataframe(detail_folio)
+            
+            # Plot portfolio payoff
+            fig = st.session_state.portfolio_stru.plot_portfolio_payoff(show_individual=True)
+            st.plotly_chart(fig, use_container_width=True)
+            
+            # Portfolio management section
+            st.divider()
+            st.subheader("Gestion du portefeuille")
+            
+            col_ptf = st.columns(3)
+            with col_ptf[0]:
+                recap_button = st.button('Récap du portefeuille structuré', use_container_width=True, key="recap_stru")
+            with col_ptf[2]:
+                clear_button = st.button("Vider le portefeuille structuré", use_container_width=True, key="clear_stru")
+            
+            # Remove specific product
+            st.divider()
+            st.subheader("Suppression d'un produit")
+
+            col_rm_buttons = st.columns(3)
+            with col_rm_buttons[0]:
+                indice_stru = st.number_input("Indice du produit à supprimer:", 0, value=0, step=1, key="indice_stru_delete")
+            with col_rm_buttons[1]:
+                params_stru["quantity_delete"] = st.number_input("Quantité à supprimer:", 0, value=1, step=1, key="quantity_stru_delete")
+
+            col_rm = st.columns(2)
+            with col_rm[0]:
+                remove_button = st.button(f"Supprimer cette quantité du produit d'indice {indice_stru}", use_container_width=True)
+            with col_rm[1]:
+                remove_product_button = st.button("Supprimer un produit entier par son indice", use_container_width=True)
+            
+            # Handle button actions
+            if remove_button:
+                try:
+                    if 0 <= indice_stru < len(st.session_state.portfolio_stru.structured_products):
+                        st.session_state.portfolio_stru.remove_product(indice_stru, params_stru["quantity_delete"])
+                        st.success(f"Produit d'indice {indice_stru} supprimé avec succès!")
+                        st.rerun()
+                    else:
+                        st.error("Indice de produit invalide!")
+                except Exception as e:
+                    st.error(f"Erreur lors de la suppression: {str(e)}")
+                    
+            if clear_button:
+                st.session_state.portfolio_stru.clear_portfolio()
+                st.success("Portefeuille de produits structurés vidé!")
+                st.rerun()
+                
+            if recap_button:
+                summary = st.session_state.portfolio_stru.get_portfolio_summary()
+                st.json(summary)
+
+        else:
+            st.markdown("Aucun produit structuré dans le portefeuille")
+    except Exception as e:
+        st.markdown(f"Aucun produit structuré dans le portefeuille")
+        st.error(f"Erreur: {str(e)}")
 
 
 
@@ -1156,3 +1316,25 @@ with tabcomparaison:
 
         with tab14 : 
             st.error('Désactiver le modèle Vasicek/Heston')
+
+if remove_button:
+    try:
+        if 0 <= indice_stru < len(st.session_state.portfolio_stru.structured_products):
+            st.session_state.portfolio_stru.remove_product(indice_stru, params_stru["quantity_delete"])
+            st.success(f"Produit d'indice {indice_stru} supprimé avec succès!")
+            st.rerun()
+        else:
+            st.error("Indice de produit invalide!")
+    except Exception as e:
+        st.error(f"Erreur lors de la suppression: {str(e)}")
+        
+if remove_product_button:
+    try:
+        if 0 <= indice_stru < len(st.session_state.portfolio_stru.structured_products):
+            st.session_state.portfolio_stru.remove_product(indice_stru, params_stru["quantity"])
+            st.success(f"Produit d'indice {indice_stru} supprimé entièrement!")
+            st.rerun()
+        else:
+            st.error("Indice de produit invalide!")
+    except Exception as e:
+        st.error(f"Erreur lors de la suppression: {str(e)}")
