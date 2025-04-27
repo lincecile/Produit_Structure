@@ -113,9 +113,9 @@ class LSM_method :
             bool: True si la condition de barrière est satisfaite, False sinon
         """
         
-        if self.option.barriere is None:
+        if self.option.barriere is None or self.option.barriere.direction_barriere is not None:
             return np.ones(Spot_simule.shape[0], dtype=bool)
-
+        
         barrier_value = self.option.barriere.niveau_barriere
 
         if self.option.barriere.type_barriere is TypeBarriere.knock_in:
@@ -144,7 +144,7 @@ class LSM_method :
         Returns:
             np.ndarray: Tableau booléen indiquant si chaque trajectoire respecte la condition jusqu'à t
         """
-        if self.option.barriere is None:
+        if self.option.barriere is None or self.option.barriere.direction_barriere is None:
             return np.ones(Spot_simule.shape[0], dtype=bool)
 
         barrier_value = self.option.barriere.niveau_barriere
@@ -182,7 +182,7 @@ class LSM_method :
             # Calcul des valeurs intrinsèques à l'instant t avec vérification des barrières
             barrier_conditions = self.check_barrier_condition_up_to_t(Spot_simule, t)
 
-            if self.option.barriere is not None:
+            if self.option.barriere is not None or self.option.barriere.direction_barriere is not None:
                 for i in range(Spot_simule.shape[0]):
                     # Vérifier la condition jusqu'au temps t inclus
                     barrier_conditions[i] = self.check_barrier_condition(Spot_simule[i, :t+1])

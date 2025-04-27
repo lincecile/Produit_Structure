@@ -417,6 +417,114 @@ class StructuredProductsStrategy:
         
         return total_price
     
+    def athena_autocall(self,
+                autocall_barrier_levels: List[float],
+                autocall_coupon_rates: List[float],
+                protection_barrier_level: float,
+                observation_dates: List[dt.date] = None,
+                notional: float = 100.0,
+                memory_effect: bool = True) -> None:
+        """
+        Crée un produit structuré de type Athena Autocall avec option d'effet mémoire.
+        
+        Args:
+            autocall_barrier_levels: Niveaux de barrière pour le remboursement anticipé (en % du prix spot)
+            autocall_coupon_rates: Taux des coupons payés en cas de remboursement anticipé
+            protection_barrier_level: Niveau de la barrière de protection à maturité (en % du prix spot)
+            observation_dates: Dates d'observation pour le remboursement anticipé
+            notional: Montant nominal de l'investissement
+            memory_effect: Si True, active l'effet mémoire sur les coupons (récupération des coupons non versés)
+        """
+        current_price = self.market_data.prix_spot
+        maturity_years = self.expiry_date.maturity_years
+        
+        # Réinitialiser les composants pour le nouveau produit
+        self.components = []
+        
+        # Si aucune date d'observation n'est fournie, créer des dates à intervalles réguliers
+        if observation_dates is None:
+            # Calcul du nombre d'observations basé sur le nombre de barrières fournies
+            n_observations = len(autocall_barrier_levels)
+            
+            # Répartir les observations régulièrement jusqu'à la maturité
+            observation_dates = [
+                dt.date.today() + dt.timedelta(days=int(365 * maturity_years * (i+1) / n_observations))
+                for i in range(n_observations - 1)
+            ]
+            # Ajouter la date de maturité comme dernière date d'observation
+            observation_dates.append(dt.date.today() + dt.timedelta(days=int(365 * maturity_years)))
+        
+        # S'assurer que les listes ont la même longueur
+        n_observations = min(len(autocall_barrier_levels), len(autocall_coupon_rates), len(observation_dates))
+        
+        # 1. Ajouter une obligation zéro-coupon pour le paiement du notionnel en cas de remboursement
+        # Utiliser la date de maturité finale comme référence
+        maturity = Maturity(
+            start_date=dt.date.today(),
+            end_date=observation_dates[-1],
+            day_count=self.expiry_date.day_count
+        )
+        
+        self.add_zero_coupon_bond(face_value=notional, maturity=maturity)
+        
+        # 2. Ajouter des options digitales pour les remboursements anticipés
+        for i in range(n_observations):
+            observation_date = observation_dates[i]
+            barrier_level = autocall_barrier_levels[i] * current_price
+            coupon_rate = autocall_coupon_rates[i]
+            
+            # Calcul du coupon avec effet mémoire si applicable
+            memory_coupon = 0.0
+            if memory_effect and i > 0:
+                # Ajouter les coupons précédents non payés
+                # En supposant que le coupon à l'indice i inclut les coupons précédents si l'effet mémoire est activé
+                memory_coupon = sum(autocall_coupon_rates[:i])
+            
+            # Paiement total: coupon actuel + coupons mémoire si l'effet mémoire est activé
+            total_coupon = coupon_rate + (memory_coupon if memory_effect else 0.0)
+            
+            # Stocker cette observation dans les composants
+            self.components.append({
+                'type': 'autocall_observation',
+                'date': observation_date,
+                'barrier_level': barrier_level,
+                'coupon_rate': coupon_rate,
+                'memory_coupon': memory_coupon if memory_effect else 0.0,
+                'total_coupon': total_coupon,
+                'payout': notional * (1 + total_coupon)
+            })
+        
+        # 3. Ajouter une protection à la baisse via un put down-and-in à maturité
+        # Cette protection s'active seulement si le prix tombe en dessous de la barrière à maturité
+        protection_barrier = protection_barrier_level * current_price
+        
+        # Ajouter un Put down-and-in avec strike = prix spot initial
+        self.add_put_down_in(
+            strike=current_price,
+            barrier_level=protection_barrier,
+            quantity=-notional / current_price  # Position courte sur le put
+        )
+        
+        # Nom du produit avec détails pertinents
+        barrier_levels_pct = [f"{level*100:.0f}%" for level in autocall_barrier_levels]
+        coupon_rates_pct = [f"{rate*100:.2f}%" for rate in autocall_coupon_rates]
+        
+        memory_suffix = " (avec effet mémoire)" if memory_effect else ""
+        product_name = f"Athena Autocall{memory_suffix} - Barrières: {'/'.join(barrier_levels_pct)} - Coupons: {'/'.join(coupon_rates_pct)} - Protection: {protection_barrier_level*100:.0f}%"
+        
+        # Calculer le prix total du produit
+        total_price = self._calculate_total_price()
+        
+        # Ajouter le produit au portefeuille de produits structurés
+        self.structured_portfolio.add_structured_product(
+            product_name=product_name,
+            product_type="athena_autocall",
+            components=self.components.copy(),
+            price=total_price,
+            quantity=1.0  # Par défaut une unité
+        )
+
+    
     def create_strategy(self, product_name: str, params: dict, quantity: float = 1.0) -> None:
         """
         Crée un produit structuré prédéfini en fonction du nom du produit
@@ -457,9 +565,16 @@ class StructuredProductsStrategy:
                 is_knock_in=params.get("is_knock_in", True),
                 notional=notional
             )
-        else:
-            raise ValueError(f"Type de produit structuré non reconnu: {product_name}")
-        
+        elif product_name == "athena autocall":
+            self.athena_autocall(
+                autocall_barrier_levels=params.get("autocall_barrier_levels", [1.0, 0.95, 0.90]),
+                autocall_coupon_rates=params.get("autocall_coupon_rates", [0.05, 0.10, 0.15]),
+                protection_barrier_level=params.get("protection_barrier_level", 0.7),
+                observation_dates=params.get("observation_dates", None),
+                notional=notional,
+                memory_effect=params.get("memory_effect", False)
+            )
+            
         # Mettre à jour la quantité si nécessaire
         if quantity != 1.0:
             # Récupérer le dernier produit ajouté

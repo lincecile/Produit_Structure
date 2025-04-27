@@ -12,7 +12,7 @@ from src.options.Pricing_option.Classes_Both.derivatives import OptionDerivative
 import plotly.graph_objects as go
 import pandas as pd
 
-class StructuredProductsPortfolio:
+class StructuredProductsPortfolio(Product):
     """
     Extension du portefeuille d'options pour inclure des produits structurés.
     Cette classe permet de gérer ensemble des options et des produits structurés.
@@ -181,6 +181,8 @@ class StructuredProductsPortfolio:
             return self._compute_reverse_convertible_payoff(components, spot_prices) * quantity
         elif product_type == "barrier_digital":
             return self._compute_barrier_digital_payoff(components, spot_prices) * quantity
+        elif product_type == "athena_autocall":
+            return self._compute_athena_autocall_payoff(components, spot_prices) * quantity
         else:
             # Si le type n'est pas reconnu, on renvoie un payoff nul
             print(f"Type de produit non reconnu pour le calcul du payoff: {product_type}")
@@ -322,6 +324,67 @@ class StructuredProductsPortfolio:
                     payoff = np.where(spot_prices <= barrier_level, 0, payoff)
         
         return payoff
+
+    def _compute_athena_autocall_payoff(self, components: List[Dict], spot_prices: np.ndarray) -> np.ndarray:
+        """
+        Calcule le payoff d'un produit Athena autocall à maturité, avec prise en compte
+        de l'effet mémoire si présent.
+        
+        Args:
+            components: Liste des composants du produit
+            spot_prices: Tableau numpy contenant une gamme de prix du sous-jacent
+            
+        Returns:
+            np.ndarray: Tableau numpy contenant le payoff pour chaque prix du sous-jacent
+        """
+        payoff = np.zeros_like(spot_prices)
+        
+        # Trouver l'obligation zéro-coupon (pour le remboursement du nominal)
+        bond_component = next((comp for comp in components if comp['type'] == 'zero_coupon_bond'), None)
+        
+        # Valeur nominale à rembourser
+        notional = bond_component['object'].face_value if bond_component and 'object' in bond_component else 100.0
+        
+        # Trouver les observations autocall (dernier niveau de barrière)
+        autocall_observations = [comp for comp in components if comp['type'] == 'autocall_observation']
+        
+        if autocall_observations:
+            # Prendre la dernière observation (maturité)
+            final_observation = autocall_observations[-1]
+            final_barrier = final_observation['barrier_level']
+            
+            # Utiliser le coupon total (qui inclut l'effet mémoire) si disponible
+            if 'total_coupon' in final_observation:
+                final_coupon = final_observation['total_coupon']
+            else:
+                final_coupon = final_observation['coupon_rate']
+            
+            # Si le prix à maturité est au-dessus de la dernière barrière,
+            # payer le nominal + coupon final (avec effet mémoire si applicable)
+            payoff = np.where(spot_prices >= final_barrier, 
+                            notional * (1 + final_coupon), 
+                            notional)  # Par défaut, rembourser le nominal
+        
+        # Trouver le put down-in (pour la protection à la baisse)
+        put_component = next((comp for comp in components if comp['type'] == 'put_down_in'), None)
+        
+        if put_component and 'object' in put_component and 'quantity' in put_component:
+            option = put_component['object']
+            quantity = put_component['quantity']
+            barrier = option.barriere.niveau_barriere
+            strike = option.prix_exercice
+            
+            # Payoff du put à barrière (down-in)
+            # Si le prix descend sous la barrière, le put est activé et le capital n'est plus protégé
+            put_payoff = np.maximum(0, strike - spot_prices)
+            barriere_activee = spot_prices <= barrier
+            put_payoff = np.where(barriere_activee, put_payoff, 0)
+            
+            # Soustraire la perte du put du remboursement du nominal
+            # (La quantité est négative car nous sommes courts sur le put)
+            payoff += put_payoff * quantity
+        
+        return payoff
     
     def plot_product_payoff(self, product_index: int, price_range: float = 0.3, 
                           num_points: int = 1000, show_premium: bool = True):
@@ -357,8 +420,8 @@ class StructuredProductsPortfolio:
                     current_price = comp['object'].prix_exercice
                     break
         
-        min_price = current_price * (1 - price_range)
-        max_price = current_price * (1 + price_range)
+        min_price = 0
+        max_price = current_price * 2
         spot_prices = np.linspace(min_price, max_price, num_points)
         
         # Calculer le payoff
@@ -428,8 +491,8 @@ class StructuredProductsPortfolio:
         
         # Déterminer l'étendue du prix spot (comme avant)
         current_price = 100  # Prix arbitraire, à remplacer par le prix réel
-        min_price = current_price * (1 - price_range)
-        max_price = current_price * (1 + price_range)
+        min_price = 0
+        max_price = current_price * 2
         spot_prices = np.linspace(min_price, max_price, num_points)
         
         # Calculer le payoff total
@@ -492,4 +555,3 @@ class StructuredProductsPortfolio:
         )
         
         return fig
-
