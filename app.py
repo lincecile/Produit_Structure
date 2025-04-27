@@ -345,22 +345,34 @@ pricer = LSM_method(option)
 
 with tab1:
 
-    st.session_state.option_priced = option
+    #st.session_state.option_priced = option
+    #st.session_state.model_used = []
 
-    st.session_state.pricer_used = []
-    st.session_state.model_used = []
+    if activer_pricing :
+        if "pricings" not in st.session_state:
+            st.session_state.pricings = {}
 
-    if activer_pricing : 
         if  bs_check : 
+            # @st.cache_data
+            # def bns_return(_arbre : Arbre) -> BlackAndScholes:
+            #     bns = BlackAndScholes(modele=_arbre)
+            #     pricing_bns = f"{round(bns.bs_pricer(),2)}€"
+            #     return pricing_bns
+            
             bns = BlackAndScholes(modele=arbre)
             pricing_bns = f"{round(bns.bs_pricer(),2)}€"
             st.divider()
             st.subheader('Pricing Black and Scholes : ')
             st.metric('', value = pricing_bns)
 
-            st.session_state.pricer_used = st.session_state.pricer_used + [bns]
-            
-            st.session_state.model_used = st.session_state.model_used + ["Black-Scholes"]
+            #st.session_state.pricer_used = st.session_state.pricer_used + [bns]
+            #st.session_state.model_used = st.session_state.model_used + ["Black-Scholes"]
+
+            st.session_state.pricings["BS"] = {
+                "option": option,
+                "pricer": bns,
+                "market_data": donnee_marche
+            }
 
         if option_exercice == 'Asiatique':
             st.divider()
@@ -380,8 +392,13 @@ with tab1:
             std_error = f"{round(std_error, 4)}€"
             intevalles = f"{round(intevalles[0], 4)}€ - {round(intevalles[1], 4)}€"
 
-            st.session_state.pricer_used = st.session_state.pricer_used + [pricer]
-            st.session_state.model_used = st.session_state.model_used + ["LSM"]
+            #st.session_state.pricer_used = st.session_state.pricer_used + [pricer]
+            #st.session_state.model_used = st.session_state.model_used + ["LSM"]
+            st.session_state.pricings["LSM"] = {
+                "option": option,
+                "pricer": pricer,
+                "market_data": donnee_marche_LSM
+            }
 
             col11_LSM, col2_LSM, col3_LSM = st.columns(3) 
             with col11_LSM:
@@ -403,9 +420,13 @@ with tab1:
             time_difference = round(end - start, 1)
             prix_option = f"{round(arbre.prix_option, 2)}€"
 
-            st.session_state.pricer_used = st.session_state.pricer_used + [arbre]
-            st.session_state.model_used = st.session_state.model_used + ["Arbre Trinomial"]
-            
+            #st.session_state.pricer_used = st.session_state.pricer_used + [arbre]
+            #st.session_state.model_used = st.session_state.model_used + ["Arbre Trinomial"]
+            st.session_state.pricings["Arbre Trinomial"] = {
+                "option": option,
+                "pricer": arbre,
+                "market_data": donnee_marche
+            }
             # arbre_st = arbre
             
             st.metric('''Valeur de l'option :''', value=prix_option, delta=None)
@@ -451,9 +472,13 @@ with tab1:
             end = time.time()
             time_difference = round(end - start, 1)
 
-            st.session_state.pricer_used = st.session_state.pricer_used + [mc_pricer]
-            st.session_state.model_used = st.session_state.model_used + ["Heston"]
-            
+            #st.session_state.pricer_used = st.session_state.pricer_used + [mc_pricer]
+            #st.session_state.model_used = st.session_state.model_used + ["Heston"]
+            st.session_state.pricings["Heston"] = {
+                "option": option,
+                "pricer": mc_pricer,
+                "market_data": donnee_marche
+            }
 
             prix_option_heston = f"{round(heston_price, 2)}€"
 
@@ -664,57 +689,91 @@ with tab_risk_metrics:
 
     st.subheader("Analyse des risques : matrice de P&L et stress scénarios")
 
-    if activer_pricing:
+    if "pricings" in st.session_state and st.session_state.pricings:
 
-        # run_metrique = st.button("Calculer la matrice de P&L")
+        available_models = list(st.session_state.pricings.keys())
 
-        option_selected = st.session_state.option_priced
+        selected_model = st.selectbox(
+            "Choisissez le modèle utilisé pour l'analyse de risque :",
+            available_models
+        )
 
-        pricer_selection = st.selectbox("Choisissez le modèle utilisé pour l'analyse de risque :", [model.value for model in ModelMetrics if model.value in st.session_state.model_used])
+        selected_data = st.session_state.pricings[selected_model]
+        option_selected = selected_data["option"]
+        pricer_selected = selected_data["pricer"]
+        market_data_selected = selected_data["market_data"]
+    # if activer_pricing:
 
-        # if run_metrique:
-        print("aaaa",pricer_selection)
+    #     # run_metrique = st.button("Calculer la matrice de P&L")
+
+    #     option_selected = st.session_state.option_priced
+
+    #     pricer_selection = st.selectbox("Choisissez le modèle utilisé pour l'analyse de risque :", [model.value for model in ModelMetrics if model.value in st.session_state.model_used])
+
+    #     # if run_metrique:
+    #     print("aaaa",pricer_selection)
         # Ici on recrée le bon pricer selon la sélection de l'utilisateur
-        if pricer_selection == "Black-Scholes":
-            
-            selected_pricer = BlackAndScholes(modele=arbre)
-            analyzer = AnalysisTools(option_selected, selected_pricer, pricing_function=selected_pricer.bs_pricer)
+        if selected_model == "BS":
+            #analyzer = AnalysisTools(option_selected, pricer_selected , pricing_function=pricer_selected.bs_pricer, params = market_data_selected)
+            analyzer = AnalysisTools(
+                    option=option_selected,
+                    pricer=pricer_selected,
+                    pricing_function=lambda:  BlackAndScholes(modele=arbre).bs_pricer(),
+                    params=market_data_selected)
 
-        elif pricer_selection == "Arbre Trinomial":
-            selected_pricer = arbre
-            analyzer = AnalysisTools(option_selected, selected_pricer, pricing_function=selected_pricer.pricer_arbre)
-
-        elif pricer_selection == "LSM":
-            selected_pricer = LSM_method(option_selected)
+        elif selected_model == "LSM":
             analyzer = AnalysisTools(
                 option_selected,
-                selected_pricer,
-                pricing_function=lambda: selected_pricer.LSM(
-                    brownian,
-                    donnee_marche_LSM,
-                    method='vector',
-                    antithetic=False,
-                    poly_degree=2,
-                    model_type='Polynomial'
-                )
+                pricer_selected,
+                pricing_function=lambda: pricer_selected.LSM(
+                    brownian, market_data_selected, method='vector', antithetic=False, poly_degree=2, model_type='Polynomial'
+                )[0],
+                params = market_data_selected
             )
+        elif selected_model == "Heston":
+            analyzer = AnalysisTools(option_selected, pricer_selected, pricing_function=pricer_selected.price, params = market_data_selected)
+        elif selected_model == "Arbre":
+            analyzer = AnalysisTools(option_selected, pricer_selected, pricing_function=pricer_selected.pricer_arbre, params = market_data_selected)
 
-        elif pricer_selection == "Heston":
-            selected_pricer = MonteCarloPricer(
-                option_selected, 
-                heston_params, 
-                nb_paths=nb_chemin, 
-                nb_steps=nb_pas
-            )
-            analyzer = AnalysisTools(option_selected, selected_pricer, pricing_function=selected_pricer.price)
+        # if selected_model == "BS":
+            
+        #     selected_pricer = BlackAndScholes(modele=arbre)
+        #     analyzer = AnalysisTools(option_selected, selected_pricer, pricing_function=pricer_selected.bs_pricer)
+
+        # elif selected_model  == "Arbre Trinomial":
+        #     selected_pricer = arbre
+        #     analyzer = AnalysisTools(option_selected, selected_pricer, pricing_function=selected_pricer.pricer_arbre)
+
+        # elif selected_model  == "LSM":
+        #     selected_pricer = LSM_method(option_selected)
+        #     analyzer = AnalysisTools(
+        #         option_selected,
+        #         selected_pricer,
+        #         pricing_function=lambda: selected_pricer.LSM(
+        #             brownian,
+        #             donnee_marche_LSM,
+        #             method='vector',
+        #             antithetic=False,
+        #             poly_degree=2,
+        #             model_type='Polynomial'
+        #         )
+        #     )
+
+        # elif pricer_selection == "Heston":
+        #     selected_pricer = MonteCarloPricer(
+        #         option_selected, 
+        #         heston_params, 
+        #         nb_paths=nb_chemin, 
+        #         nb_steps=nb_pas
+        #     )
+        #     analyzer = AnalysisTools(option_selected, selected_pricer, pricing_function=selected_pricer.price)
 
         else:
             selected_pricer = None
             analyzer = None
 
         if analyzer is not None:
-            st.success("Analyse possible. Calcul en cours...")
-            
+            st.write(vars(option_selected))
             with st.spinner("Calcul de la matrice de PnL..."):
                 spot_range = np.linspace(spot * 0.9, spot * 1.1, 5)  # Exemple : +/- 10% du spot actuel
 

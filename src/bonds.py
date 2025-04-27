@@ -5,10 +5,10 @@ from typing import Optional
 import datetime as dt
 import math
 
-from time_utils.maturity import Maturity
-from rate import Rate
-from products import Product
-from time_utils.day_count import DayCount
+from src.time_utils.maturity import Maturity
+from src.rate import Rate
+from src.products import Product
+from src.time_utils.day_count import DayCount
 
 
 # %% classes
