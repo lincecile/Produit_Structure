@@ -1,9 +1,9 @@
 from dataclasses import dataclass
 from typing import Callable
-from options.Pricing_option.Classes_Both.module_option import Option
-from options.Pricing_option.Classes_Both.module_marche import DonneeMarche
-from options.Pricing_option.Classes_MonteCarlo_LSM.module_brownian import Brownian
-from options.Pricing_option.Classes_MonteCarlo_LSM.module_LSM import LSM_method
+from src.options.Pricing_option.Classes_Both.module_option import Option
+from src.options.Pricing_option.Classes_Both.module_marche import DonneeMarche
+from src.options.Pricing_option.Classes_MonteCarlo_LSM.module_brownian import Brownian
+from src.options.Pricing_option.Classes_MonteCarlo_LSM.module_LSM import LSM_method
 from copy import deepcopy
 from typing import Union
 import datetime as dt
@@ -145,7 +145,7 @@ class OptionDerivatives:
         parameters : OptionDerivativesParameters
             Paramètres de l'option (marché + caractéristiques).
         pricer_options : dict
-            Options supplémentaires pour le pricer LSM.
+            src.options supplémentaires pour le pricer LSM.
     """
     def __init__(self, option: Option, market: DonneeMarche, pricer : LSM_method, pricer_options: dict = None)-> None:
         self.option = deepcopy(option)

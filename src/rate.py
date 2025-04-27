@@ -13,8 +13,8 @@ import matplotlib.pyplot as plt
 import matplotlib
 matplotlib.use('WebAgg')
 
-from time_utils.maturity import Maturity
-from time_utils.day_count import DayCount
+from src.time_utils.maturity import Maturity
+from src.time_utils.day_count import DayCount
 
 #%% classes
 

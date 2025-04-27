@@ -2,13 +2,13 @@ import numpy as np
 import matplotlib.pyplot as plt
 from collections import defaultdict, Counter
 from typing import List, Dict, Tuple, Union, Optional
-from products import Product
-from options.Pricing_option.Classes_Both.module_barriere import TypeBarriere, DirectionBarriere
-from options.Pricing_option.Classes_MonteCarlo_LSM.module_LSM import LSM_method
-from options.Pricing_option.Classes_Both.module_option import Option
-from options.Pricing_option.Classes_Both.module_marche import DonneeMarche  
-from options.Pricing_option.Classes_MonteCarlo_LSM.module_brownian import Brownian
-from options.Pricing_option.Classes_Both.derivatives import OptionDerivatives
+from src.products import Product
+from src.options.Pricing_option.Classes_Both.module_barriere import TypeBarriere, DirectionBarriere
+from src.options.Pricing_option.Classes_MonteCarlo_LSM.module_LSM import LSM_method
+from src.options.Pricing_option.Classes_Both.module_option import Option
+from src.options.Pricing_option.Classes_Both.module_marche import DonneeMarche  
+from src.options.Pricing_option.Classes_MonteCarlo_LSM.module_brownian import Brownian
+from src.options.Pricing_option.Classes_Both.derivatives import OptionDerivatives
 import plotly.graph_objects as go
 import pandas as pd
 
