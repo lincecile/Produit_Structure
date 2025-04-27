@@ -1036,94 +1036,11 @@ with tab4 :
 
 with tab_risk_metrics:
 
-    st.subheader("Analyse des risques : matrice de P&L et stress scénarios")
+    st.subheader("Analyse des risques : matrice de P&L et stress scénarios (options européennes)")
 
-    # if "pricings" in st.session_state and st.session_state.pricings:
-
-    #     available_models = list(st.session_state.pricings.keys())
-
-    #     selected_model = st.selectbox(
-    #         "Choisissez le modèle utilisé pour l'analyse de risque :",
-    #         available_models
-    #     )
-
-    #     selected_data = st.session_state.pricings[selected_model]
-    #     option_selected = selected_data["option"]
-    #     pricer_selected = selected_data["pricer"]
-    #     market_data_selected = selected_data["market_data"]
     if activer_pricing:
         selected_pricer = BlackAndScholes(modele=arbre)
-        #selected_pricer = arbre
-        #analyzer = AnalysisTools(option, selected_pricer, pricing_function=selected_pricer.pricer_arbre)
         analyzer = AnalysisTools(option, selected_pricer, pricing_function=selected_pricer.bs_pricer)
-
-        
-
-    #     option_selected = st.session_state.option_priced
-
-    #     pricer_selection = st.selectbox("Choisissez le modèle utilisé pour l'analyse de risque :", [model.value for model in ModelMetrics if model.value in st.session_state.model_used])
-
-    #     # if run_metrique:
-    #     print("aaaa",pricer_selection)
-        # Ici on recrée le bon pricer selon la sélection de l'utilisateur
-        # if selected_model == "BS":
-        #     #analyzer = AnalysisTools(option_selected, pricer_selected , pricing_function=pricer_selected.bs_pricer, params = market_data_selected)
-        #     analyzer = AnalysisTools(
-        #             option=option_selected,
-        #             pricer=pricer_selected,
-        #             pricing_function=lambda:  BlackAndScholes(modele=arbre).bs_pricer(),
-        #             params=market_data_selected)
-
-        # elif selected_model == "LSM":
-        #     analyzer = AnalysisTools(
-        #         option_selected,
-        #         pricer_selected,
-        #         pricing_function=lambda: pricer_selected.LSM(
-        #             brownian, market_data_selected, method='vector', antithetic=False, poly_degree=2, model_type='Polynomial'
-        #         )[0],
-        #         params = market_data_selected
-        #     )
-        # elif selected_model == "Heston":
-        #     analyzer = AnalysisTools(option_selected, pricer_selected, pricing_function=pricer_selected.price, params = market_data_selected)
-        # elif selected_model == "Arbre":
-        #     analyzer = AnalysisTools(option_selected, pricer_selected, pricing_function=pricer_selected.pricer_arbre, params = market_data_selected)
-
-        # if selected_model == "BS":
-            
-        #     selected_pricer = BlackAndScholes(modele=arbre)
-        #     analyzer = AnalysisTools(option_selected, selected_pricer, pricing_function=pricer_selected.bs_pricer)
-
-        # elif selected_model  == "Arbre Trinomial":
-        #     selected_pricer = arbre
-        #     analyzer = AnalysisTools(option_selected, selected_pricer, pricing_function=selected_pricer.pricer_arbre)
-
-        # elif selected_model  == "LSM":
-        #     selected_pricer = LSM_method(option_selected)
-        #     analyzer = AnalysisTools(
-        #         option_selected,
-        #         selected_pricer,
-        #         pricing_function=lambda: selected_pricer.LSM(
-        #             brownian,
-        #             donnee_marche_LSM,
-        #             method='vector',
-        #             antithetic=False,
-        #             poly_degree=2,
-        #             model_type='Polynomial'
-        #         )
-        #     )
-
-        # elif pricer_selection == "Heston":
-        #     selected_pricer = MonteCarloPricer(
-        #         option_selected, 
-        #         heston_params, 
-        #         nb_paths=nb_chemin, 
-        #         nb_steps=nb_pas
-        #     )
-        #     analyzer = AnalysisTools(option_selected, selected_pricer, pricing_function=selected_pricer.price)
-
-        # else:
-        #     selected_pricer = None
-        #     analyzer = None
 
         if analyzer is not None:
             with st.spinner("Calcul de la matrice de PnL..."):
@@ -1135,28 +1052,15 @@ with tab_risk_metrics:
                     x_param_values=spot_range
                 )
 
-                # pnl_matrix_vol = analyzer.compute_pnl_matrix(
-                #     x_param_name='volatilite',  
-                #     x_param_values=vol_range
-                # )
 
             st.subheader("Matrice de P&L :")
             st.dataframe(pnl_matrix_spot.round(4))
-            #st.dataframe(pnl_matrix_vol.round(4))
             st.pyplot(analyzer.plot_pnl_matrix(pnl_matrix_spot, title="P&L de l'option"))
 
             st.divider()
             
             st.subheader("Scénarios de stress :")
-            
-            # crisis_scenarios = [
-            #     {'spot_price': spot, 'v0': volatite**2, 'rho': -0.7},
-            #     {'spot_price': spot * 0.7, 'v0': 0.25, 'rho': -0.9},
-            #     {'spot_price': spot * 0.65, 'v0': 0.35, 'rho': -0.85},
-            #     {'spot_price': spot * 0.8, 'v0': 0.2, 'rho': -0.75},
-            #     {'spot_price': spot * 0.9, 'v0': 0.15, 'risk_free_rate': 0.08, 'rho': -0.6},
-            # ]
-
+        
             crisis_scenarios = [
     # Conditions normales (point de départ)
     {'prix_spot': spot, 'volatilite': volatite, 'risk_free': risk_free_rate},
@@ -1193,6 +1097,7 @@ with tab_risk_metrics:
                 stress_results = analyzer.stress_test(crisis_scenarios, scenario_names)
             
             st.dataframe(stress_results)
+            st.pyplot(analyzer.plot_stress_results(stress_results))
         
     else:
         st.warning("Veuillez d'abord lancer le pricing avant d'accéder aux métriques de risques.")
