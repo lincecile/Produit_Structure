@@ -27,7 +27,18 @@ class Maturity:
         assert test, 'Please enter valid input options for start'
         
     def __get_maturity(self) -> float:
-        return (self.end_date - self.start_date).days / self.day_count
+        days = (self.end_date - self.start_date).days
+        # Convert day_count from string to numeric value if needed
+        if isinstance(self.day_count, str):
+            if self.day_count.upper() == "ACT/365":
+                divisor = 365
+            elif self.day_count.upper() == "ACT/360":
+                divisor = 360
+            else:
+                raise ValueError(f"Unsupported day count convention: {self.day_count}")
+        else:
+            divisor = self.day_count
+        return days / divisor
     
     def __repr__(self):
         return f'Maturity(start_date={self.start_date}, end_date={self.end_date}, maturity_years={self.maturity_years})'
