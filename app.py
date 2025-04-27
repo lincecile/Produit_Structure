@@ -895,6 +895,17 @@ with tabs_portfolio[1]:
                         st.error("Indice de produit invalide!")
                 except Exception as e:
                     st.error(f"Erreur lors de la suppression: {str(e)}")
+            
+            if remove_product_button:
+                try:
+                    if 0 <= indice_stru < len(st.session_state.portfolio_stru.structured_products):
+                        st.session_state.portfolio_stru.remove_product_entirely(indice_stru)
+                        st.success(f"Produit d'indice {indice_stru} entièrement supprimé!")
+                        st.rerun()
+                    else:
+                        st.error("Indice de produit invalide!")
+                except Exception as e:
+                    st.error(f"Erreur lors de la suppression: {str(e)}")
                     
             if clear_button:
                 st.session_state.portfolio_stru.clear_portfolio()
@@ -910,8 +921,6 @@ with tabs_portfolio[1]:
     except Exception as e:
         st.markdown(f"Aucun produit structuré dans le portefeuille")
         st.error(f"Erreur: {str(e)}")
-
-
 
 
 # ###########################################################################
@@ -1411,25 +1420,3 @@ with tabcomparaison:
 
         with tab14 : 
             st.error('Désactiver le modèle Vasicek/Heston')
-
-if remove_button:
-    try:
-        if 0 <= indice_stru < len(st.session_state.portfolio_stru.structured_products):
-            st.session_state.portfolio_stru.remove_product(indice_stru, params_stru["quantity_delete"])
-            st.success(f"Produit d'indice {indice_stru} supprimé avec succès!")
-            st.rerun()
-        else:
-            st.error("Indice de produit invalide!")
-    except Exception as e:
-        st.error(f"Erreur lors de la suppression: {str(e)}")
-        
-if remove_product_button:
-    try:
-        if 0 <= indice_stru < len(st.session_state.portfolio_stru.structured_products):
-            st.session_state.portfolio_stru.remove_product(indice_stru, params_stru["quantity"])
-            st.success(f"Produit d'indice {indice_stru} supprimé entièrement!")
-            st.rerun()
-        else:
-            st.error("Indice de produit invalide!")
-    except Exception as e:
-        st.error(f"Erreur lors de la suppression: {str(e)}")
