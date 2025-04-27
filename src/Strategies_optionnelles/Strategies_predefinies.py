@@ -170,9 +170,27 @@ class OptionsStrategy:
 
         if put_strike >= call_strike:
             raise ValueError("Le strike du put doit être inférieur au strike du call pour un collar")
-        
+
         self.long_put(put_strike, option_quantity, americaine)
         self.short_call(call_strike, option_quantity, americaine)
+        strike_forward = (put_strike + call_strike) / 2
+        self.forward(strike_forward, option_quantity, americaine)
+    
+    def forward(self, strike_forward: float,
+               option_quantity: float = None, americaine: bool = False) -> None:
+        """
+        Crée un collar: protection d'une position sous-jacente longue 
+        en achetant un put et en vendant un call.
+        
+        Args:
+            stock_quantity: Quantité du sous-jacent détenue (doit être positive)
+            put_strike: Strike du put (protection)
+            call_strike: Strike du call (vendu pour financer le put)
+            option_quantity: Quantité d'options (si différente de stock_quantity)
+            americaine: True pour options européennes, False pour américaines
+        """
+        self.short_put(strike_forward, option_quantity, americaine)
+        self.long_call(strike_forward, option_quantity, americaine)
 
     def create_strategy(self, strategy_name: str, params: dict, quantity_multiplier: float = 1.0) -> None:
         """
@@ -190,6 +208,7 @@ class OptionsStrategy:
 
         americaine = params.get("americaine", True)
         quantity = params.get("quantity", 1.0)
+
         quantity = quantity * quantity_multiplier
         
         # Appeler la méthode correspondante avec les bons paramètres
@@ -230,10 +249,16 @@ class OptionsStrategy:
                 americaine=americaine
             )
         elif strategy_name == "collar":
-            option_quantity = params.get("option_quantity", None)
             self.collar(
                 put_strike=params["strike1"],
                 call_strike=params["strike2"],
-                option_quantity=option_quantity,
+                option_quantity=quantity,
                 americaine=americaine
             )
+        elif strategy_name == "forward":
+            self.forward(
+                strike_forward=params["strike"],
+                option_quantity=quantity,
+                americaine=americaine
+            )
+        

@@ -45,8 +45,9 @@ class OptionsPortfolio:
         self.option_objects.append(option)
 
         combined = defaultdict(lambda: {'quantity': 0})
-
+        print(self.options)
         for item in self.options:
+            print(item)
             rounded_premium = round(float(item['premium']), 2) 
             key = (item['type'], item['barriere'], item['niveau barriere'], item['strike'], rounded_premium)
             combined[key]['quantity'] += item['quantity']
@@ -93,7 +94,7 @@ class OptionsPortfolio:
             print(self.options)
 
 
-    def price_portfolio(self) -> float:
+    def _get_price(self) -> float:
         """Calcule le prix total du portefeuille"""
         return sum(opt['premium'] * opt['quantity'] for opt in self.options)
     
@@ -162,7 +163,7 @@ class OptionsPortfolio:
             'net_call_position': net_call_position,
             'net_put_position': net_put_position,
             'total_cost': total_cost,
-            'portfolio_price': self.price_portfolio()
+            'portfolio_price': self._get_price()
         }
     
     def get_portfolio_detail(self) -> Dict:
@@ -180,6 +181,8 @@ class OptionsPortfolio:
         # Renommer les colonnes pour plus de clarté
         df = df.rename(columns={
             'type': 'Type',
+            'barriere': 'Barrière',
+            'niveau barriere': 'Niveau barrière',
             'strike': 'Strike',
             'quantity': 'Quantité',
             'premium': 'Prime payée/reçue',

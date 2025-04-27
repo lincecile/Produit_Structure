@@ -30,6 +30,7 @@ class StratOption(Enum) :
     straddle = "Straddle"
     butterfly = "Butterfly"
     collar = "Collar"
+    forward = "Forward"
 
 class MethodeCalcul(Enum) : 
     vector = "Vectorielle"
