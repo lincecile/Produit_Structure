@@ -368,13 +368,14 @@ with tab1 :
 
     with col4321:
         params_stru["quantity"] = st.number_input("Quantité de produit structuré:",0, value=1, step=1)
-        indice_stru = st.number_input("Indice du produit à supprimer:",0, value=1, step=1)
 
     #Portfolio
     
     st.divider()
+    st.header("Portefeuilles :")
+    tabs_portfolio = st.tabs(["Portefeuille Options", "Portfeuille Produits Structurés"])
     
-    st.header("Portefeuille :")
+    
     
 #Ici, on feed les objets
 
@@ -620,7 +621,8 @@ with tab1:
         strategy.create_strategy(option_type_strat, params, 1 if sens_option == 'Long' else -1)  
         st.success(f"Stratégie {option_type_strat} créée avec succès !")
     
-    
+with tabs_portfolio[0] :
+
     try : 
         detail_folio = st.session_state.portfolio.get_portfolio_detail()
         if len(detail_folio) != 0:
@@ -743,13 +745,120 @@ with tab1:
     except:
         pass
     
-    if ajouter_produit:
-        if 'portfolio_stru' not in st.session_state:
-            st.session_state.portfolio_stru = StructuredProductsPortfolio("",brownian, donnee_marche)
-        
-        st.session_state.portfolio_stru.add_option(option, 1*params["quantity"] if sens_option == 'Long' else -1*params["quantity"])  
-    
+with tabs_portfolio[1]:
+    # Initialize portfolio if needed
+    if 'portfolio_stru' not in st.session_state:
+        st.session_state.portfolio_stru = StructuredProductsPortfolio("Structured Products Portfolio")
 
+    # Handle adding products when the add button is clicked
+    if ajouter_produit:
+        if stru_type_strat == "Capital protected note":
+            # Add capital protected note using the components already created
+            st.session_state.portfolio_stru.add_structured_product(
+                product_name=f"Capital Protected Note {params_stru['Valeur_faciale_note']}%",
+                product_type="capital_protected_note",
+                components=cpn_components,
+                price=params_stru["Valeur_faciale_note"] * (1 + params_stru["rateZC_note"]), # Simple price estimation
+                quantity=params_stru["quantity"] if sens_stru == 'Long' else -params_stru["quantity"]
+            )
+            st.success(f"Capital Protected Note ajouté au portefeuille!")
+
+        elif stru_type_strat == "Reverse convertible":
+            # Add reverse convertible using the components already created
+            st.session_state.portfolio_stru.add_structured_product(
+                product_name=f"Reverse Convertible {params_stru['rateZC_rc']*100}% - {params_stru['barriere_rc']}",
+                product_type="reverse_convertible",
+                components=rc_components,
+                price=params_stru["Valeur_faciale_rc"] * (1 + params_stru["rateZC_rc"]), # Simple price estimation
+                quantity=params_stru["quantity"] if sens_stru == 'Long' else -params_stru["quantity"]
+            )
+            st.success(f"Reverse Convertible ajouté au portefeuille!")
+
+        elif stru_type_strat == "Barrier digital":
+            # Add barrier digital using the components already created
+            st.session_state.portfolio_stru.add_structured_product(
+                product_name=f"Barrier Digital {params_stru['barriere_digit']}",
+                product_type="barrier_digital",
+                components=digital_components,
+                price=(params_stru["barriere_digit"] - params_stru["strike_digit"]) * 0.3, # Simple price estimation
+                quantity=params_stru["quantity"] if sens_stru == 'Long' else -params_stru["quantity"]
+            )
+            st.success(f"Barrier Digital ajouté au portefeuille!")
+
+    # Display portfolio content
+    try:
+        if 'portfolio_stru' in st.session_state and hasattr(st.session_state.portfolio_stru, 'structured_products') and len(st.session_state.portfolio_stru.structured_products) > 0:
+            # Display portfolio details
+            detail_folio = st.session_state.portfolio_stru.get_portfolio_detail()
+            st.dataframe(detail_folio)
+            
+            # Plot portfolio payoff
+            fig = st.session_state.portfolio_stru.plot_portfolio_payoff(show_individual=True)
+            st.plotly_chart(fig, use_container_width=True)
+            
+            # Portfolio management section
+            st.divider()
+            st.subheader("Gestion du portefeuille")
+            
+            col_ptf = st.columns(3)
+            with col_ptf[0]:
+                recap_button = st.button('Récap du portefeuille structuré', use_container_width=True, key="recap_stru")
+            with col_ptf[1]:
+                view_product_button = st.button('Voir un produit spécifique', use_container_width=True)
+            with col_ptf[2]:
+                clear_button = st.button("Vider le portefeuille structuré", use_container_width=True, key="clear_stru")
+            
+            # Remove specific product
+            st.divider()
+            st.subheader("Suppression d'un produit")
+
+            col_rm_buttons = st.columns(3)
+            with col_rm_buttons[0]:
+                indice_stru = st.number_input("Indice du produit à supprimer:", 0, value=0, step=1, key="indice_stru_delete")
+            with col_rm_buttons[1]:
+                params_stru["quantity_delete"] = st.number_input("Quantité à supprimer:", 0, value=1, step=1, key="quantity_stru_delete")
+
+            col_rm = st.columns(2)
+            with col_rm[0]:
+                remove_button = st.button(f"Supprimer cette quantité du produit d'indice {indice_stru}", use_container_width=True)
+            with col_rm[1]:
+                remove_product_button = st.button("Supprimer un produit entier par son indice", use_container_width=True)
+            
+            # Handle button actions
+            if remove_button:
+                try:
+                    if 0 <= indice_stru < len(st.session_state.portfolio_stru.structured_products):
+                        st.session_state.portfolio_stru.remove_product(indice_stru, params_stru["quantity_delete"])
+                        st.success(f"Produit d'indice {indice_stru} supprimé avec succès!")
+                        st.rerun()
+                    else:
+                        st.error("Indice de produit invalide!")
+                except Exception as e:
+                    st.error(f"Erreur lors de la suppression: {str(e)}")
+                    
+            if clear_button:
+                st.session_state.portfolio_stru.clear_portfolio()
+                st.success("Portefeuille de produits structurés vidé!")
+                st.rerun()
+                
+            if recap_button:
+                summary = st.session_state.portfolio_stru.get_portfolio_summary()
+                st.json(summary)
+                
+            if view_product_button:
+                product_index = st.selectbox(
+                    "Sélectionnez un produit à visualiser:",
+                    range(len(st.session_state.portfolio_stru.structured_products)),
+                    format_func=lambda i: f"{i}: {st.session_state.portfolio_stru.structured_products[i]['product_name']}"
+                )
+                if st.button("Afficher le payoff"):
+                    product_fig = st.session_state.portfolio_stru.plot_product_payoff(product_index, show_premium=True)
+                    st.plotly_chart(product_fig, use_container_width=True)
+        else:
+            st.markdown("Aucun produit structuré dans le portefeuille")
+    except Exception as e:
+        st.markdown(f"Aucun produit structuré dans le portefeuille")
+        st.error(f"Erreur: {str(e)}")
 
 
 
@@ -1251,3 +1360,25 @@ with tabcomparaison:
 
         with tab14 : 
             st.error('Désactiver le modèle Vasicek/Heston')
+
+if remove_button:
+    try:
+        if 0 <= indice_stru < len(st.session_state.portfolio_stru.structured_products):
+            st.session_state.portfolio_stru.remove_product(indice_stru, params_stru["quantity_delete"])
+            st.success(f"Produit d'indice {indice_stru} supprimé avec succès!")
+            st.rerun()
+        else:
+            st.error("Indice de produit invalide!")
+    except Exception as e:
+        st.error(f"Erreur lors de la suppression: {str(e)}")
+        
+if remove_product_button:
+    try:
+        if 0 <= indice_stru < len(st.session_state.portfolio_stru.structured_products):
+            st.session_state.portfolio_stru.remove_product(indice_stru, params_stru["quantity"])
+            st.success(f"Produit d'indice {indice_stru} supprimé entièrement!")
+            st.rerun()
+        else:
+            st.error("Indice de produit invalide!")
+    except Exception as e:
+        st.error(f"Erreur lors de la suppression: {str(e)}")
