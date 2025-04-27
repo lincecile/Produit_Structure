@@ -350,11 +350,9 @@ with tab1 :
             params_stru["base_coupon_rates"] = st.number_input("Entrez le taux de coupon de base :", 0.0, format="%.2f", value=0.05, step=0.01)
             params_stru["base_coupon_rates"] = [params_stru["base_coupon_rates"] for i in range(params_stru["Nb_observation"])]
 
-            # Create components for Athena Autocall product
-            # 1. Create observation dates (quarterly)
             today = dt.date.today()
             observation_dates = [
-                today + dt.timedelta(days=90*i)   # tous les 3 months
+                today + dt.timedelta(days=90*i)   
                 for i in range(params_stru["Nb_observation"])
             ]
             
