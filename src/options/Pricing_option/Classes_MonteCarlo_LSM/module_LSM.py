@@ -113,7 +113,7 @@ class LSM_method :
             bool: True si la condition de barrière est satisfaite, False sinon
         """
         
-        if self.option.barriere is None:
+        if self.option.barriere.direction_barriere is None:
             print('Pas de barrière')
             return np.ones(Spot_simule.shape[0], dtype=bool)
         
@@ -146,7 +146,7 @@ class LSM_method :
         Returns:
             np.ndarray: Tableau booléen indiquant si chaque trajectoire respecte la condition jusqu'à t
         """
-        if self.option.barriere is None:
+        if self.option.barriere.direction_barriere is None:
             return np.ones(Spot_simule.shape[0], dtype=bool)
 
         barrier_value = self.option.barriere.niveau_barriere
