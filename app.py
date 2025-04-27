@@ -13,7 +13,7 @@ import plotly.graph_objects as go
 warnings.filterwarnings("ignore")
 sys.setrecursionlimit(1000000000)
 
-from src.options.Pricing_option.Classes_Both.module_enums import TypeBarriere, DirectionBarriere, ConventionBaseCalendaire, MethodeCalcul, RegType, SensOption, StratOption
+from src.options.Pricing_option.Classes_Both.module_enums import TypeBarriere, DirectionBarriere, ConventionBaseCalendaire, MethodeCalcul, RegType, SensOption, StratOption, StratStructured
 from src.options.Pricing_option.Classes_Both.module_marche import DonneeMarche
 from src.options.Pricing_option.Classes_Both.module_option import Option
 from src.options.Pricing_option.Classes_Both.module_barriere import Barriere
@@ -21,7 +21,6 @@ from src.options.Pricing_option.Classes_TrinomialTree.module_arbre_noeud import 
 from src.options.Pricing_option.Classes_Both.module_pricing_analysis import StrikeComparison, VolComparison, RateComparison
 from src.options.Pricing_option.Classes_Both.module_black_scholes import BlackAndScholes
 from src.options.Pricing_option.Classes_TrinomialTree.module_grecques_empiriques import GrecquesEmpiriques
-from src.options.Pricing_option.Classes_Both.module_enums import TypeBarriere, DirectionBarriere, ConventionBaseCalendaire, MethodeCalcul, RegType, SensOption, StratOption
 from src.options.Pricing_option.Classes_Both.module_marche import DonneeMarche
 from src.options.Pricing_option.Classes_Both.module_option import Option
 from src.options.Pricing_option.Classes_Both.module_barriere import Barriere
@@ -47,6 +46,9 @@ from src.options.HestonPricer.Pricing.pricing_monte_carlo_pricer import MonteCar
 
 from src.Strategies_optionnelles.Portfolio_options import OptionsPortfolio
 from src.Strategies_optionnelles.Strategies_predefinies import OptionsStrategy
+
+from src.Strategies_optionnelles.Portfolio_structured import StructuredProductsPortfolio
+from src.Strategies_optionnelles.StructuredStrat import StructuredProductsStrategy
 
 from src.time_utils.maturity import Maturity
 from src.rate import Rate, StochasticRate
@@ -225,7 +227,6 @@ with tab1 :
     col412, col422, col432 = st.columns(3)
 
     with col412 :
-        # strike = st.number_input("Entrez le strike (en €):", format="%.2f",value=100.0, step=0.01)
         sens_option = st.selectbox("Choisissez le sens de l'option ou de la stratégie:", [sens.value for sens in SensOption])
     
     with col422:
@@ -249,6 +250,20 @@ with tab1 :
     with col432:
         params["quantity"] = st.number_input("Quantité:",0, value=1, step=1)
         indice = st.number_input("Indice de l'option à supprimer:",0, value=1, step=1)
+
+    st.divider()
+    col4121, col4221, col4321 = st.columns(3)
+    
+    with col4121:
+        sens_stru = st.selectbox("Choisissez le sens du produit structuré:", [sens.value for sens in SensOption])
+        params_stru = {}
+
+    with col4221:
+        stru_type_strat = st.selectbox("Choisissez un produit structuré :", [strat.value for strat in StratStructured])        
+
+    with col4321:
+        params_stru["quantity"] = st.number_input("Quantité de produit structuré:",0, value=1, step=1)
+        indice_stru = st.number_input("Indice du produit à supprimer:",0, value=1, step=1)
 
     
     
@@ -325,8 +340,6 @@ with tab2 :
 # feed objet LSM
 brownian = Brownian(time_to_maturity=(date_maturite-date_pricing).days / convention_base_calendaire, nb_step=nb_pas, nb_trajectoire=nb_chemin, seed=seed_choice)
 pricer = LSM_method(option)
-
-# portfolio = OptionsPortfolio(brownian,donnee_marche)
 
 with tab1:
 
@@ -450,6 +463,14 @@ with tab1:
         
         st.session_state.portfolio.add_option(option, 1*params["quantity"] if sens_option == 'Long' else -1*params["quantity"])  
     
+
+    if st.button('Ajouter un produit structuré au portfeuille') :
+        if 'portfolio' not in st.session_state:
+            st.session_state.portfolio = StructuredProductsPortfolio(brownian, donnee_marche)
+        
+        st.session_state.portfolio.add_option(option, 1*params["quantity"] if sens_option == 'Long' else -1*params["quantity"])  
+    
+
     if st.button('Ajouter une stratégie prédéfinie au portfeuille') :
         strategy_name = option_type_strat.lower()
         
