@@ -127,7 +127,7 @@ class AnalysisTools:
         # Si un tableau 1D - faire un simple graphique
         if isinstance(pnl_matrix.index, pd.RangeIndex) or len(pnl_matrix.columns) <= 4:
             x_col = pnl_matrix.columns[0] 
-            y_col = 'P&L' if 'P&L' in pnl_matrix.columns else 'Price' # attention erreur ici si matrice en 2D
+            y_col = 'P&L' if 'P&L' in pnl_matrix.columns else 'Price' 
             
             plt.plot(pnl_matrix[x_col], pnl_matrix[y_col], 'b-', linewidth=2, marker='o')
             plt.xlabel(x_col)

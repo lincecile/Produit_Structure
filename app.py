@@ -56,7 +56,7 @@ from src.bonds import ZCBond
 from src.rate import Rate
 
 
-from analysis_tools import AnalysisTools 
+from src.analysis_tools import AnalysisTools 
 
 #%% Constantes
 
@@ -430,15 +430,16 @@ with tab1 :
 
     with col4321:
         params_stru["quantity"] = st.number_input("Quantité de produit structuré:",0, value=1, step=1)
-        indice_stru = st.number_input("Indice du produit à supprimer:",0, value=1, step=1)
 
 
 
     #Portfolio
     
     st.divider()
+    st.header("Portefeuilles :")
+    tabs_portfolio = st.tabs(["Portefeuille Options", "Portfeuille Produits Structurés"])
     
-    st.header("Portefeuille :")
+    
     
 #Ici, on feed les objets
 
@@ -521,9 +522,8 @@ with col_opt_pricing[0]:
     
     
     if activer_pricing :
-        with st.popover('Résultats du pricing', use_container_width=True):
-            if "pricings" not in st.session_state:
-                st.session_state.pricings = {}
+        # if "pricings" not in st.session_state:
+        #     st.session_state.pricings = {}
 
             if  bs_check : 
                 # @st.cache_data
@@ -541,11 +541,11 @@ with col_opt_pricing[0]:
                 #st.session_state.pricer_used = st.session_state.pricer_used + [bns]
                 #st.session_state.model_used = st.session_state.model_used + ["Black-Scholes"]
 
-                st.session_state.pricings["BS"] = {
-                    "option": option,
-                    "pricer": bns,
-                    "market_data": donnee_marche
-                }
+            # st.session_state.pricings["BS"] = {
+            #     "option": option,
+            #     "pricer": bns,
+            #     "market_data": donnee_marche
+            # }
 
             if option_exercice == 'Asiatique':
                 st.divider()
@@ -565,13 +565,13 @@ with col_opt_pricing[0]:
                 std_error = f"{round(std_error, 4)}€"
                 intevalles = f"{round(intevalles[0], 4)}€ - {round(intevalles[1], 4)}€"
 
-                #st.session_state.pricer_used = st.session_state.pricer_used + [pricer]
-                #st.session_state.model_used = st.session_state.model_used + ["LSM"]
-                st.session_state.pricings["LSM"] = {
-                    "option": option,
-                    "pricer": pricer,
-                    "market_data": donnee_marche_LSM
-                }
+            #st.session_state.pricer_used = st.session_state.pricer_used + [pricer]
+            #st.session_state.model_used = st.session_state.model_used + ["LSM"]
+            # st.session_state.pricings["LSM"] = {
+            #     "option": option,
+            #     "pricer": pricer,
+            #     "market_data": donnee_marche_LSM
+            # }
 
                 col11_LSM, col2_LSM, col3_LSM = st.columns(3) 
                 with col11_LSM:
@@ -593,28 +593,28 @@ with col_opt_pricing[0]:
                 time_difference = round(end - start, 1)
                 prix_option = f"{round(arbre.prix_option, 2)}€"
 
-                #st.session_state.pricer_used = st.session_state.pricer_used + [arbre]
-                #st.session_state.model_used = st.session_state.model_used + ["Arbre Trinomial"]
-                st.session_state.pricings["Arbre Trinomial"] = {
-                    "option": option,
-                    "pricer": arbre,
-                    "market_data": donnee_marche
-                }
-                # arbre_st = arbre
-                
-                st.metric('''Valeur de l'option :''', value=prix_option, delta=None)
-                st.metric('Temps de pricing (secondes) :', value=time_difference, delta=None)
-                start = time.time()
-                with st.spinner('''Valorisation de l'option en cours...''') : 
-                    arbre.pricer_arbre()
-                end = time.time()
-                time_difference = round(end - start, 1)
-                prix_option = f"{round(arbre.prix_option, 2)}€"
-                
-                # arbre_st = arbre
-                
-                st.metric('''Valeur de l'option :''', value=prix_option, delta=None)
-                st.metric('Temps de pricing (secondes) :', value=time_difference, delta=None)
+            #st.session_state.pricer_used = st.session_state.pricer_used + [arbre]
+            #st.session_state.model_used = st.session_state.model_used + ["Arbre Trinomial"]
+            # st.session_state.pricings["Arbre Trinomial"] = {
+            #     "option": option,
+            #     "pricer": arbre,
+            #     "market_data": donnee_marche
+            # }
+            # arbre_st = arbre
+            
+            st.metric('''Valeur de l'option :''', value=prix_option, delta=None)
+            st.metric('Temps de pricing (secondes) :', value=time_difference, delta=None)
+            start = time.time()
+            with st.spinner('''Valorisation de l'option en cours...''') : 
+                arbre.pricer_arbre()
+            end = time.time()
+            time_difference = round(end - start, 1)
+            prix_option = f"{round(arbre.prix_option, 2)}€"
+            
+            # arbre_st = arbre
+            
+            st.metric('''Valeur de l'option :''', value=prix_option, delta=None)
+            st.metric('Temps de pricing (secondes) :', value=time_difference, delta=None)
 
             if heston_model_check:
                 st.divider()
@@ -645,13 +645,13 @@ with col_opt_pricing[0]:
                 end = time.time()
                 time_difference = round(end - start, 1)
 
-                #st.session_state.pricer_used = st.session_state.pricer_used + [mc_pricer]
-                #st.session_state.model_used = st.session_state.model_used + ["Heston"]
-                st.session_state.pricings["Heston"] = {
-                    "option": option,
-                    "pricer": mc_pricer,
-                    "market_data": donnee_marche
-                }
+            #st.session_state.pricer_used = st.session_state.pricer_used + [mc_pricer]
+            #st.session_state.model_used = st.session_state.model_used + ["Heston"]
+            # st.session_state.pricings["Heston"] = {
+            #     "option": option,
+            #     "pricer": mc_pricer,
+            #     "market_data": donnee_marche
+            # }
 
                 prix_option_heston = f"{round(heston_price, 2)}€"
 
@@ -685,7 +685,8 @@ with tab1:
         strategy.create_strategy(option_type_strat, params, 1 if sens_option == 'Long' else -1)  
         st.success(f"Stratégie {option_type_strat} créée avec succès !")
     
-    
+with tabs_portfolio[0] :
+
     try : 
         detail_folio = st.session_state.portfolio.get_portfolio_detail()
         if len(detail_folio) != 0:
@@ -808,13 +809,120 @@ with tab1:
     except:
         pass
     
-    if ajouter_produit:
-        if 'portfolio_stru' not in st.session_state:
-            st.session_state.portfolio_stru = StructuredProductsPortfolio("",brownian, donnee_marche)
-        
-        st.session_state.portfolio_stru.add_option(option, 1*params["quantity"] if sens_option == 'Long' else -1*params["quantity"])  
-    
+with tabs_portfolio[1]:
+    # Initialize portfolio if needed
+    if 'portfolio_stru' not in st.session_state:
+        st.session_state.portfolio_stru = StructuredProductsPortfolio("Structured Products Portfolio")
 
+    # Handle adding products when the add button is clicked
+    if ajouter_produit:
+        if stru_type_strat == "Capital protected note":
+            # Add capital protected note using the components already created
+            st.session_state.portfolio_stru.add_structured_product(
+                product_name=f"Capital Protected Note {params_stru['Valeur_faciale_note']}%",
+                product_type="capital_protected_note",
+                components=cpn_components,
+                price=params_stru["Valeur_faciale_note"] * (1 + params_stru["rateZC_note"]), # Simple price estimation
+                quantity=params_stru["quantity"] if sens_stru == 'Long' else -params_stru["quantity"]
+            )
+            st.success(f"Capital Protected Note ajouté au portefeuille!")
+
+        elif stru_type_strat == "Reverse convertible":
+            # Add reverse convertible using the components already created
+            st.session_state.portfolio_stru.add_structured_product(
+                product_name=f"Reverse Convertible {params_stru['rateZC_rc']*100}% - {params_stru['barriere_rc']}",
+                product_type="reverse_convertible",
+                components=rc_components,
+                price=params_stru["Valeur_faciale_rc"] * (1 + params_stru["rateZC_rc"]), # Simple price estimation
+                quantity=params_stru["quantity"] if sens_stru == 'Long' else -params_stru["quantity"]
+            )
+            st.success(f"Reverse Convertible ajouté au portefeuille!")
+
+        elif stru_type_strat == "Barrier digital":
+            # Add barrier digital using the components already created
+            st.session_state.portfolio_stru.add_structured_product(
+                product_name=f"Barrier Digital {params_stru['barriere_digit']}",
+                product_type="barrier_digital",
+                components=digital_components,
+                price=(params_stru["barriere_digit"] - params_stru["strike_digit"]) * 0.3, # Simple price estimation
+                quantity=params_stru["quantity"] if sens_stru == 'Long' else -params_stru["quantity"]
+            )
+            st.success(f"Barrier Digital ajouté au portefeuille!")
+
+    # Display portfolio content
+    try:
+        if 'portfolio_stru' in st.session_state and hasattr(st.session_state.portfolio_stru, 'structured_products') and len(st.session_state.portfolio_stru.structured_products) > 0:
+            # Display portfolio details
+            detail_folio = st.session_state.portfolio_stru.get_portfolio_detail()
+            st.dataframe(detail_folio)
+            
+            # Plot portfolio payoff
+            fig = st.session_state.portfolio_stru.plot_portfolio_payoff(show_individual=True)
+            st.plotly_chart(fig, use_container_width=True)
+            
+            # Portfolio management section
+            st.divider()
+            st.subheader("Gestion du portefeuille")
+            
+            col_ptf = st.columns(3)
+            with col_ptf[0]:
+                recap_button = st.button('Récap du portefeuille structuré', use_container_width=True, key="recap_stru")
+            with col_ptf[1]:
+                view_product_button = st.button('Voir un produit spécifique', use_container_width=True)
+            with col_ptf[2]:
+                clear_button = st.button("Vider le portefeuille structuré", use_container_width=True, key="clear_stru")
+            
+            # Remove specific product
+            st.divider()
+            st.subheader("Suppression d'un produit")
+
+            col_rm_buttons = st.columns(3)
+            with col_rm_buttons[0]:
+                indice_stru = st.number_input("Indice du produit à supprimer:", 0, value=0, step=1, key="indice_stru_delete")
+            with col_rm_buttons[1]:
+                params_stru["quantity_delete"] = st.number_input("Quantité à supprimer:", 0, value=1, step=1, key="quantity_stru_delete")
+
+            col_rm = st.columns(2)
+            with col_rm[0]:
+                remove_button = st.button(f"Supprimer cette quantité du produit d'indice {indice_stru}", use_container_width=True)
+            with col_rm[1]:
+                remove_product_button = st.button("Supprimer un produit entier par son indice", use_container_width=True)
+            
+            # Handle button actions
+            if remove_button:
+                try:
+                    if 0 <= indice_stru < len(st.session_state.portfolio_stru.structured_products):
+                        st.session_state.portfolio_stru.remove_product(indice_stru, params_stru["quantity_delete"])
+                        st.success(f"Produit d'indice {indice_stru} supprimé avec succès!")
+                        st.rerun()
+                    else:
+                        st.error("Indice de produit invalide!")
+                except Exception as e:
+                    st.error(f"Erreur lors de la suppression: {str(e)}")
+                    
+            if clear_button:
+                st.session_state.portfolio_stru.clear_portfolio()
+                st.success("Portefeuille de produits structurés vidé!")
+                st.rerun()
+                
+            if recap_button:
+                summary = st.session_state.portfolio_stru.get_portfolio_summary()
+                st.json(summary)
+                
+            if view_product_button:
+                product_index = st.selectbox(
+                    "Sélectionnez un produit à visualiser:",
+                    range(len(st.session_state.portfolio_stru.structured_products)),
+                    format_func=lambda i: f"{i}: {st.session_state.portfolio_stru.structured_products[i]['product_name']}"
+                )
+                if st.button("Afficher le payoff"):
+                    product_fig = st.session_state.portfolio_stru.plot_product_payoff(product_index, show_premium=True)
+                    st.plotly_chart(product_fig, use_container_width=True)
+        else:
+            st.markdown("Aucun produit structuré dans le portefeuille")
+    except Exception as e:
+        st.markdown(f"Aucun produit structuré dans le portefeuille")
+        st.error(f"Erreur: {str(e)}")
 
 
 
@@ -943,22 +1051,26 @@ with tab_risk_metrics:
 
     st.subheader("Analyse des risques : matrice de P&L et stress scénarios")
 
-    if "pricings" in st.session_state and st.session_state.pricings:
+    # if "pricings" in st.session_state and st.session_state.pricings:
 
-        available_models = list(st.session_state.pricings.keys())[::-1]
+    #     available_models = list(st.session_state.pricings.keys())
 
-        selected_model = st.selectbox(
-            "Choisissez le modèle utilisé pour l'analyse de risque :",
-            available_models
-        )
+    #     selected_model = st.selectbox(
+    #         "Choisissez le modèle utilisé pour l'analyse de risque :",
+    #         available_models
+    #     )
 
-        selected_data = st.session_state.pricings[selected_model]
-        option_selected = selected_data["option"]
-        pricer_selected = selected_data["pricer"]
-        market_data_selected = selected_data["market_data"]
-    # if activer_pricing:
+    #     selected_data = st.session_state.pricings[selected_model]
+    #     option_selected = selected_data["option"]
+    #     pricer_selected = selected_data["pricer"]
+    #     market_data_selected = selected_data["market_data"]
+    if activer_pricing:
+        selected_pricer = BlackAndScholes(modele=arbre)
+        #selected_pricer = arbre
+        #analyzer = AnalysisTools(option, selected_pricer, pricing_function=selected_pricer.pricer_arbre)
+        analyzer = AnalysisTools(option, selected_pricer, pricing_function=selected_pricer.bs_pricer)
 
-    #     # run_metrique = st.button("Calculer la matrice de P&L")
+        
 
     #     option_selected = st.session_state.option_priced
 
@@ -967,27 +1079,27 @@ with tab_risk_metrics:
     #     # if run_metrique:
     #     print("aaaa",pricer_selection)
         # Ici on recrée le bon pricer selon la sélection de l'utilisateur
-        if selected_model == "BS":
-            #analyzer = AnalysisTools(option_selected, pricer_selected , pricing_function=pricer_selected.bs_pricer, params = market_data_selected)
-            analyzer = AnalysisTools(
-                    option=option_selected,
-                    pricer=pricer_selected,
-                    pricing_function=lambda:  BlackAndScholes(modele=arbre).bs_pricer(),
-                    params=market_data_selected)
+        # if selected_model == "BS":
+        #     #analyzer = AnalysisTools(option_selected, pricer_selected , pricing_function=pricer_selected.bs_pricer, params = market_data_selected)
+        #     analyzer = AnalysisTools(
+        #             option=option_selected,
+        #             pricer=pricer_selected,
+        #             pricing_function=lambda:  BlackAndScholes(modele=arbre).bs_pricer(),
+        #             params=market_data_selected)
 
-        elif selected_model == "LSM":
-            analyzer = AnalysisTools(
-                option_selected,
-                pricer_selected,
-                pricing_function=lambda: pricer_selected.LSM(
-                    brownian, market_data_selected, method='vector', antithetic=False, poly_degree=2, model_type='Polynomial'
-                )[0],
-                params = market_data_selected
-            )
-        elif selected_model == "Heston":
-            analyzer = AnalysisTools(option_selected, pricer_selected, pricing_function=pricer_selected.price, params = market_data_selected)
-        elif selected_model == "Arbre":
-            analyzer = AnalysisTools(option_selected, pricer_selected, pricing_function=pricer_selected.pricer_arbre, params = market_data_selected)
+        # elif selected_model == "LSM":
+        #     analyzer = AnalysisTools(
+        #         option_selected,
+        #         pricer_selected,
+        #         pricing_function=lambda: pricer_selected.LSM(
+        #             brownian, market_data_selected, method='vector', antithetic=False, poly_degree=2, model_type='Polynomial'
+        #         )[0],
+        #         params = market_data_selected
+        #     )
+        # elif selected_model == "Heston":
+        #     analyzer = AnalysisTools(option_selected, pricer_selected, pricing_function=pricer_selected.price, params = market_data_selected)
+        # elif selected_model == "Arbre":
+        #     analyzer = AnalysisTools(option_selected, pricer_selected, pricing_function=pricer_selected.pricer_arbre, params = market_data_selected)
 
         # if selected_model == "BS":
             
@@ -1022,27 +1134,33 @@ with tab_risk_metrics:
         #     )
         #     analyzer = AnalysisTools(option_selected, selected_pricer, pricing_function=selected_pricer.price)
 
-        else:
-            selected_pricer = None
-            analyzer = None
+        # else:
+        #     selected_pricer = None
+        #     analyzer = None
 
         if analyzer is not None:
-            st.write(vars(option_selected))
             with st.spinner("Calcul de la matrice de PnL..."):
-                spot_range = np.linspace(spot * 0.9, spot * 1.1, 5)  # Exemple : +/- 10% du spot actuel
+                spot_range = np.linspace(spot * 0.9, spot * 1.1, 5) 
+                vol_range = np.linspace(0.8 * volatite, 1.2 * volatite, 5)  
 
-                pnl_matrix = analyzer.compute_pnl_matrix(
-                    x_param_name='prix_spot',   # Corrigé ici
+                pnl_matrix_spot = analyzer.compute_pnl_matrix(
+                    x_param_name='prix_spot',  
                     x_param_values=spot_range
                 )
 
+                # pnl_matrix_vol = analyzer.compute_pnl_matrix(
+                #     x_param_name='volatilite',  
+                #     x_param_values=vol_range
+                # )
+
             st.subheader("Matrice de P&L :")
-            st.dataframe(pnl_matrix.round(4))
-            st.pyplot(analyzer.plot_pnl_matrix(pnl_matrix, title="Matrice de P&L"))
+            st.dataframe(pnl_matrix_spot.round(4))
+            #st.dataframe(pnl_matrix_vol.round(4))
+            st.pyplot(analyzer.plot_pnl_matrix(pnl_matrix_spot, title="P&L de l'option"))
 
             st.divider()
             
-            # st.subheader("Scénarios de stress :")
+            st.subheader("Scénarios de stress :")
             
             # crisis_scenarios = [
             #     {'spot_price': spot, 'v0': volatite**2, 'rho': -0.7},
@@ -1052,22 +1170,45 @@ with tab_risk_metrics:
             #     {'spot_price': spot * 0.9, 'v0': 0.15, 'risk_free_rate': 0.08, 'rho': -0.6},
             # ]
 
-            # scenario_names = [
-            #     "Conditions normales",
-            #     "Crise 2008",
-            #     "COVID-19",
-            #     "Bulle Internet",
-            #     "Hausse des taux 2022"
-            # ]
+            crisis_scenarios = [
+    # Conditions normales (point de départ)
+    {'prix_spot': spot, 'volatilite': volatite, 'risk_free': risk_free_rate},
+    
+    # Crise financière 2008
+    {'prix_spot': spot * 0.6, 'volatilite': 0.5, 'risk_free': 0.01},
+    
+    # COVID-19 crash 2020
+    {'prix_spot': spot * 0.65, 'volatilite': 0.8, 'risk_free': 0.01},
+    
+    # Bulle Internet 2000
+    {'prix_spot': spot * 0.7, 'volatilite': 0.35, 'risk_free': 0.05},
+    
+    # Hausse des taux 2022
+    {'prix_spot': spot * 0.8, 'volatilite': 0.25, 'risk_free': 0.05},
+    
+    # Crise dette européenne 2011
+    {'prix_spot': spot * 0.75, 'volatilite': 0.4, 'risk_free': 0.02}
+]
 
-            # with st.spinner("Calcul des scénarios de stress..."):
-            #     stress_results = analyzer.stress_test(crisis_scenarios, scenario_names)
+
+            scenario_names = [
+    "Conditions normales",
+    "Crise financière 2008",
+    "COVID-19 2020",
+    "Bulle internet 2000",
+    "Hausse des taux 2022",
+    "Crise dette souveraine 2011"
+]
+
+
+
+            with st.spinner("Calcul des scénarios de stress..."):
+                stress_results = analyzer.stress_test(crisis_scenarios, scenario_names)
             
-            # st.dataframe(stress_results)
-            # st.pyplot(analyzer.plot_stress_results(stress_results))
+            st.dataframe(stress_results)
         
-    # else:
-    #     st.warning("Veuillez d'abord lancer le pricing avant d'accéder aux métriques de risques.")
+    else:
+        st.warning("Veuillez d'abord lancer le pricing avant d'accéder aux métriques de risques.")
 
         
 # ###########################################################################
@@ -1283,3 +1424,25 @@ with tabcomparaison:
 
         with tab14 : 
             st.error('Désactiver le modèle Vasicek/Heston')
+
+if remove_button:
+    try:
+        if 0 <= indice_stru < len(st.session_state.portfolio_stru.structured_products):
+            st.session_state.portfolio_stru.remove_product(indice_stru, params_stru["quantity_delete"])
+            st.success(f"Produit d'indice {indice_stru} supprimé avec succès!")
+            st.rerun()
+        else:
+            st.error("Indice de produit invalide!")
+    except Exception as e:
+        st.error(f"Erreur lors de la suppression: {str(e)}")
+        
+if remove_product_button:
+    try:
+        if 0 <= indice_stru < len(st.session_state.portfolio_stru.structured_products):
+            st.session_state.portfolio_stru.remove_product(indice_stru, params_stru["quantity"])
+            st.success(f"Produit d'indice {indice_stru} supprimé entièrement!")
+            st.rerun()
+        else:
+            st.error("Indice de produit invalide!")
+    except Exception as e:
+        st.error(f"Erreur lors de la suppression: {str(e)}")
