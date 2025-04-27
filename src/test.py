@@ -110,6 +110,7 @@ def test_portfolio_options():
         # Plot individual option
         option_fig = options_portfolio.plot_option_payoff(0, show_premium=True)
         print("Option payoff plot generated successfully.")
+        option_fig.show()
     except Exception as e:
         print(f"Error plotting payoff: {e}")
     
